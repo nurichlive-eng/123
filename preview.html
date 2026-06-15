@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>oino — Preview</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0F0F0F;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .phone {
+    width: 390px;
+    height: 844px;
+    background: #0F0F0F;
+    border-radius: 50px;
+    border: 8px solid #2A2A2A;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.8), inset 0 0 0 1px #3A3A3A;
+  }
+  .status-bar {
+    background: #0F0F0F;
+    padding: 14px 28px 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .status-time { color: #fff; font-size: 15px; font-weight: 600; }
+  .status-icons { display: flex; gap: 6px; align-items: center; }
+  .status-icons span { color: #fff; font-size: 12px; }
+
+  .top-bar {
+    padding: 4px 16px 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .logo { color: #fff; font-size: 28px; font-weight: 800; letter-spacing: -0.5px; }
+  .bell-btn {
+    width: 40px; height: 40px;
+    background: #1A1A1A;
+    border: 1px solid #2A2A2A;
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 16px;
+    transition: background 0.2s;
+  }
+  .bell-btn:hover { background: #252525; }
+
+  .segmented {
+    margin: 0 16px 8px;
+    background: #1A1A1A;
+    border-radius: 999px;
+    padding: 3px;
+    display: flex;
+    flex-shrink: 0;
+  }
+  .seg-btn {
+    flex: 1; padding: 8px;
+    text-align: center;
+    color: #888;
+    font-size: 14px; font-weight: 600;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .seg-btn.active { background: #4CAF50; color: #fff; }
+
+  .calendar-strip {
+    border-bottom: 1px solid #2A2A2A;
+    padding: 8px 16px;
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    flex-shrink: 0;
+    scrollbar-width: none;
+  }
+  .calendar-strip::-webkit-scrollbar { display: none; }
+  .day-cell {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 4px 8px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    min-width: 44px;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .day-cell:hover { background: #1A1A1A; }
+  .day-cell.selected { border-color: #4CAF50; background: #1E3A1E; }
+  .day-cell.today { border-color: #2A2A2A; }
+  .day-abbrev { font-size: 11px; color: #888; font-weight: 500; margin-bottom: 4px; }
+  .day-cell.selected .day-abbrev { color: #4CAF50; }
+  .day-num-wrap {
+    width: 28px; height: 28px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .day-cell.today .day-num-wrap { background: #4CAF50; }
+  .day-num { font-size: 15px; font-weight: 600; color: #fff; }
+  .day-cell.selected .day-num { color: #4CAF50; }
+  .day-cell.today .day-num { color: #fff; }
+  .day-dot { width: 4px; height: 4px; border-radius: 2px; background: #4CAF50; margin-top: 3px; }
+
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: none;
+    padding-bottom: 60px;
+  }
+  .content::-webkit-scrollbar { display: none; }
+
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  .filter-chips {
+    display: flex; gap: 4px;
+    padding: 8px 16px 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .filter-chips::-webkit-scrollbar { display: none; }
+  .chip {
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: #1A1A1A;
+    border: 1px solid #2A2A2A;
+    color: #888;
+    font-size: 13px; font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+    user-select: none;
+    flex-shrink: 0;
+  }
+  .chip.active { background: #1E3A1E; border-color: #4CAF50; color: #4CAF50; }
+  .chip:hover { background: #222; }
+
+  .field-card {
+    margin: 0 16px 8px;
+    background: #1A1A1A;
+    border-radius: 16px;
+    border: 1px solid #2A2A2A;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .field-card:hover { transform: scale(0.99); }
+  .field-photo {
+    height: 160px;
+    position: relative;
+    display: flex; align-items: flex-end; justify-content: flex-end;
+    padding: 8px;
+  }
+  .rating-badge {
+    background: rgba(0,0,0,0.6);
+    padding: 4px 8px;
+    border-radius: 999px;
+    color: #FFD700;
+    font-size: 12px; font-weight: 700;
+  }
+  .field-info { padding: 16px; }
+  .field-name-row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 4px;
+  }
+  .field-name { color: #fff; font-size: 15px; font-weight: 700; }
+  .field-price { color: #4CAF50; font-size: 13px; font-weight: 700; }
+  .field-address { color: #888; font-size: 12px; }
+
+  .match-card {
+    margin: 0 16px 8px;
+    background: #1A1A1A;
+    border-radius: 16px;
+    border: 1px solid #2A2A2A;
+    padding: 16px;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .match-card:hover { transform: scale(0.99); }
+  .match-header { display: flex; align-items: center; margin-bottom: 12px; }
+  .avatar {
+    width: 40px; height: 40px; border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; color: #fff;
+    margin-right: 10px; flex-shrink: 0;
+  }
+  .org-info { flex: 1; }
+  .org-name { color: #fff; font-size: 14px; font-weight: 600; }
+  .org-label { color: #888; font-size: 11px; }
+  .match-price { color: #4CAF50; font-size: 15px; font-weight: 700; }
+  .divider { height: 1px; background: #2A2A2A; margin: 0 0 10px; }
+  .match-details { margin-bottom: 12px; }
+  .match-field-name { color: #fff; font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  .match-address { color: #888; font-size: 12px; margin-bottom: 4px; }
+  .match-time { color: #888; font-size: 12px; }
+  .progress-header {
+    display: flex; justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .progress-label { color: #888; font-size: 12px; }
+  .progress-count { color: #888; font-size: 12px; }
+  .progress-current { color: #4CAF50; font-weight: 700; }
+  .progress-bar {
+    height: 6px; background: #2A2A2A;
+    border-radius: 999px; overflow: hidden;
+  }
+  .progress-fill { height: 100%; background: #4CAF50; border-radius: 999px; }
+
+  .fab {
+    position: absolute;
+    bottom: 76px; right: 16px;
+    width: 56px; height: 56px;
+    border-radius: 28px;
+    background: #4CAF50;
+    display: none;
+    align-items: center; justify-content: center;
+    font-size: 28px; color: #fff;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(76,175,80,0.5);
+    transition: transform 0.15s;
+    z-index: 10;
+    line-height: 1;
+  }
+  .fab:hover { transform: scale(1.08); }
+  .fab.visible { display: flex; }
+
+  .tab-bar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 60px;
+    background: #141414;
+    border-top: 1px solid #2A2A2A;
+    display: flex;
+  }
+  .tab-item {
+    flex: 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 3px;
+    cursor: pointer;
+    color: #888;
+    font-size: 11px; font-weight: 600;
+    transition: color 0.15s;
+    user-select: none;
+  }
+  .tab-item.active { color: #4CAF50; }
+  .tab-icon { font-size: 20px; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="status-bar">
+    <span class="status-time">9:41</span>
+    <div class="status-icons">
+      <span>●●●</span>
+      <span>WiFi</span>
+      <span>🔋</span>
+    </div>
+  </div>
+
+  <div class="top-bar">
+    <div class="logo">oino</div>
+    <div class="bell-btn">🔔</div>
+  </div>
+
+  <div class="segmented">
+    <div class="seg-btn active" onclick="switchTab(0, this)">Поля</div>
+    <div class="seg-btn" onclick="switchTab(1, this)">Матчи</div>
+  </div>
+
+  <div class="calendar-strip" id="calendar"></div>
+
+  <div class="content">
+    <!-- ПОЛЯ -->
+    <div class="tab-pane active" id="tab-fields">
+      <div class="filter-chips">
+        <div class="chip" onclick="toggleChip(this)">Газон</div>
+        <div class="chip" onclick="toggleChip(this)">Крытое</div>
+        <div class="chip" onclick="toggleChip(this)">5×5</div>
+        <div class="chip" onclick="toggleChip(this)">Душ</div>
+        <div class="chip" onclick="toggleChip(this)">Парковка</div>
+      </div>
+
+      <div class="field-card">
+        <div class="field-photo" style="background: linear-gradient(135deg, #1B4332, #2D6A4F);">
+          <div class="rating-badge">★ 4.9</div>
+        </div>
+        <div class="field-info">
+          <div class="field-name-row">
+            <div class="field-name">Арена Чемпион</div>
+            <div class="field-price">от 8 000 ₸/ч</div>
+          </div>
+          <div class="field-address">ул. Аль-Фараби, 17 · 1.2 км</div>
+        </div>
+      </div>
+
+      <div class="field-card">
+        <div class="field-photo" style="background: linear-gradient(135deg, #1A3A5C, #2E6DA4);">
+          <div class="rating-badge">★ 4.7</div>
+        </div>
+        <div class="field-info">
+          <div class="field-name-row">
+            <div class="field-name">Футбольный центр Pro</div>
+            <div class="field-price">от 12 000 ₸/ч</div>
+          </div>
+          <div class="field-address">пр. Достык, 89 · 3.4 км</div>
+        </div>
+      </div>
+
+      <div class="field-card">
+        <div class="field-photo" style="background: linear-gradient(135deg, #3D1A1A, #8B3A3A);">
+          <div class="rating-badge">★ 4.5</div>
+        </div>
+        <div class="field-info">
+          <div class="field-name-row">
+            <div class="field-name">Спорткомплекс Олимп</div>
+            <div class="field-price">от 6 500 ₸/ч</div>
+          </div>
+          <div class="field-address">ул. Тимирязева, 42 · 5.1 км</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- МАТЧИ -->
+    <div class="tab-pane" id="tab-matches">
+      <div class="filter-chips">
+        <div class="chip" onclick="toggleChip(this)">Утро</div>
+        <div class="chip" onclick="toggleChip(this)">Вечер</div>
+        <div class="chip" onclick="toggleChip(this)">Новички</div>
+        <div class="chip" onclick="toggleChip(this)">Любители</div>
+        <div class="chip" onclick="toggleChip(this)">Профи</div>
+      </div>
+
+      <div class="match-card">
+        <div class="match-header">
+          <div class="avatar" style="background:#1565C0">АМ</div>
+          <div class="org-info">
+            <div class="org-name">Алишер М.</div>
+            <div class="org-label">Организатор</div>
+          </div>
+          <div class="match-price">1 500 ₸</div>
+        </div>
+        <div class="divider"></div>
+        <div class="match-details">
+          <div class="match-field-name">Арена Чемпион</div>
+          <div class="match-address">ул. Аль-Фараби, 17</div>
+          <div class="match-time">18:00 · 1.5 ч</div>
+        </div>
+        <div class="progress-header">
+          <span class="progress-label">Собрано игроков</span>
+          <span class="progress-count"><span class="progress-current">7</span>/10</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:70%"></div></div>
+      </div>
+
+      <div class="match-card">
+        <div class="match-header">
+          <div class="avatar" style="background:#6A1572">ДК</div>
+          <div class="org-info">
+            <div class="org-name">Денис К.</div>
+            <div class="org-label">Организатор</div>
+          </div>
+          <div class="match-price">2 000 ₸</div>
+        </div>
+        <div class="divider"></div>
+        <div class="match-details">
+          <div class="match-field-name">Футбольный центр Pro</div>
+          <div class="match-address">пр. Достык, 89</div>
+          <div class="match-time">20:00 · 2 ч</div>
+        </div>
+        <div class="progress-header">
+          <span class="progress-label">Собрано игроков</span>
+          <span class="progress-count"><span class="progress-current">4</span>/8</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:50%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fab" id="fab">＋</div>
+
+  <div class="tab-bar">
+    <div class="tab-item active" onclick="switchBottomTab(this)">
+      <span class="tab-icon">⚽</span>Главная
+    </div>
+    <div class="tab-item" onclick="switchBottomTab(this)">
+      <span class="tab-icon">📅</span>Мои игры
+    </div>
+    <div class="tab-item" onclick="switchBottomTab(this)">
+      <span class="tab-icon">👤</span>Профиль
+    </div>
+  </div>
+</div>
+
+<script>
+  // Calendar
+  const DAY_ABBREVS = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+  const today = new Date();
+  const bookedOffsets = [2, 5];
+
+  function getWeekDates() {
+    const dates = [];
+    const mon = new Date(today);
+    const d = mon.getDay();
+    mon.setDate(mon.getDate() - (d === 0 ? 6 : d - 1));
+    for (let i = 0; i < 14; i++) {
+      const x = new Date(mon);
+      x.setDate(mon.getDate() + i);
+      dates.push(x);
+    }
+    return dates;
+  }
+
+  let selectedDate = new Date(today);
+
+  function renderCalendar() {
+    const strip = document.getElementById('calendar');
+    strip.innerHTML = '';
+    getWeekDates().forEach(date => {
+      const isToday = date.toDateString() === today.toDateString();
+      const isSelected = date.toDateString() === selectedDate.toDateString();
+      const diffDays = Math.round((date - today) / 86400000);
+      const hasBooking = bookedOffsets.includes(diffDays);
+
+      const cell = document.createElement('div');
+      cell.className = 'day-cell' + (isSelected ? ' selected' : '') + (isToday && !isSelected ? ' today' : '');
+      cell.innerHTML = `
+        <div class="day-abbrev">${DAY_ABBREVS[date.getDay()]}</div>
+        <div class="day-num-wrap ${isToday ? 'today-circle' : ''}">
+          <div class="day-num">${date.getDate()}</div>
+        </div>
+        ${hasBooking ? '<div class="day-dot"></div>' : ''}
+      `;
+      if (isToday) cell.querySelector('.day-num-wrap').style.background = isSelected ? 'transparent' : '#4CAF50';
+      cell.onclick = () => { selectedDate = date; renderCalendar(); };
+      strip.appendChild(cell);
+    });
+  }
+  renderCalendar();
+
+  // Segmented control
+  function switchTab(index, btn) {
+    document.querySelectorAll('.seg-btn').forEach((b, i) => {
+      b.classList.toggle('active', i === index);
+    });
+    document.getElementById('tab-fields').classList.toggle('active', index === 0);
+    document.getElementById('tab-matches').classList.toggle('active', index === 1);
+    document.getElementById('fab').classList.toggle('visible', index === 1);
+  }
+
+  // Filter chips
+  function toggleChip(el) {
+    el.classList.toggle('active');
+  }
+
+  // Bottom tabs
+  function switchBottomTab(el) {
+    document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+  }
+</script>
+</body>
+</html>
