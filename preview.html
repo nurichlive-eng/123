@@ -2,474 +2,815 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>oino — Preview</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>oino</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: #0F0F0F;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    padding: 20px;
-  }
-  .phone {
-    width: 390px;
-    height: 844px;
-    background: #0F0F0F;
-    border-radius: 50px;
-    border: 8px solid #2A2A2A;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    box-shadow: 0 40px 80px rgba(0,0,0,0.8), inset 0 0 0 1px #3A3A3A;
-  }
-  .status-bar {
-    background: #0F0F0F;
-    padding: 14px 28px 8px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-shrink: 0;
-  }
-  .status-time { color: #fff; font-size: 15px; font-weight: 600; }
-  .status-icons { display: flex; gap: 6px; align-items: center; }
-  .status-icons span { color: #fff; font-size: 12px; }
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#0F0F0F;--card:#1A1A1A;--border:#2A2A2A;--green:#4CAF50;--green-muted:#1E3A1E;
+  --text:#FFFFFF;--muted:#888888;--tabbar:#141414;--radius:16px;
+}
+html,body{height:100%;background:#111;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+body{display:flex;justify-content:center;align-items:center;}
 
-  .top-bar {
-    padding: 4px 16px 8px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-shrink: 0;
-  }
-  .logo { color: #fff; font-size: 28px; font-weight: 800; letter-spacing: -0.5px; }
-  .bell-btn {
-    width: 40px; height: 40px;
-    background: #1A1A1A;
-    border: 1px solid #2A2A2A;
-    border-radius: 20px;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; font-size: 16px;
-    transition: background 0.2s;
-  }
-  .bell-btn:hover { background: #252525; }
+.phone{
+  width:390px;height:844px;background:var(--bg);
+  border-radius:50px;border:8px solid #2A2A2A;
+  overflow:hidden;position:relative;
+  box-shadow:0 40px 100px rgba(0,0,0,.9),inset 0 0 0 1px #3A3A3A;
+  flex-shrink:0;
+}
+@media(max-width:430px){
+  body{align-items:flex-start;}
+  .phone{width:100vw;height:100dvh;border-radius:0;border:none;box-shadow:none;}
+}
 
-  .segmented {
-    margin: 0 16px 8px;
-    background: #1A1A1A;
-    border-radius: 999px;
-    padding: 3px;
-    display: flex;
-    flex-shrink: 0;
-  }
-  .seg-btn {
-    flex: 1; padding: 8px;
-    text-align: center;
-    color: #888;
-    font-size: 14px; font-weight: 600;
-    border-radius: 999px;
-    cursor: pointer;
-    transition: all 0.2s;
-    user-select: none;
-  }
-  .seg-btn.active { background: #4CAF50; color: #fff; }
+/* SCREENS */
+.screen{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  background:var(--bg);transform:translateX(100%);
+  transition:transform .3s cubic-bezier(.4,0,.2,1);pointer-events:none;
+  overflow:hidden;
+}
+.screen.active{transform:translateX(0);pointer-events:all;}
+.screen.prev{transform:translateX(-30%);}
 
-  .calendar-strip {
-    border-bottom: 1px solid #2A2A2A;
-    padding: 8px 16px;
-    display: flex;
-    gap: 4px;
-    overflow-x: auto;
-    flex-shrink: 0;
-    scrollbar-width: none;
-  }
-  .calendar-strip::-webkit-scrollbar { display: none; }
-  .day-cell {
-    display: flex; flex-direction: column; align-items: center;
-    padding: 4px 8px;
-    border-radius: 12px;
-    border: 1px solid transparent;
-    cursor: pointer;
-    min-width: 44px;
-    transition: all 0.15s;
-    flex-shrink: 0;
-  }
-  .day-cell:hover { background: #1A1A1A; }
-  .day-cell.selected { border-color: #4CAF50; background: #1E3A1E; }
-  .day-cell.today { border-color: #2A2A2A; }
-  .day-abbrev { font-size: 11px; color: #888; font-weight: 500; margin-bottom: 4px; }
-  .day-cell.selected .day-abbrev { color: #4CAF50; }
-  .day-num-wrap {
-    width: 28px; height: 28px; border-radius: 14px;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .day-cell.today .day-num-wrap { background: #4CAF50; }
-  .day-num { font-size: 15px; font-weight: 600; color: #fff; }
-  .day-cell.selected .day-num { color: #4CAF50; }
-  .day-cell.today .day-num { color: #fff; }
-  .day-dot { width: 4px; height: 4px; border-radius: 2px; background: #4CAF50; margin-top: 3px; }
+/* COMMON */
+.header{
+  display:flex;align-items:center;padding:44px 16px 12px;gap:12px;
+  flex-shrink:0;background:var(--bg);border-bottom:1px solid var(--border);
+}
+.back-btn{
+  width:36px;height:36px;background:var(--card);border:1px solid var(--border);
+  border-radius:18px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:16px;flex-shrink:0;
+}
+.header-title{color:var(--text);font-size:17px;font-weight:700;flex:1;}
+.screen-scroll{flex:1;overflow-y:auto;scrollbar-width:none;padding-bottom:16px;}
+.screen-scroll::-webkit-scrollbar{display:none;}
 
-  .content {
-    flex: 1;
-    overflow-y: auto;
-    scrollbar-width: none;
-    padding-bottom: 60px;
-  }
-  .content::-webkit-scrollbar { display: none; }
+/* STATUS BAR */
+.status-bar{
+  padding:12px 24px 6px;display:flex;justify-content:space-between;
+  align-items:center;flex-shrink:0;background:var(--bg);
+}
+.s-time{color:var(--text);font-size:15px;font-weight:600;}
+.s-icons{color:var(--text);font-size:13px;display:flex;gap:5px;align-items:center;}
 
-  .tab-pane { display: none; }
-  .tab-pane.active { display: block; }
+/* TOP BAR */
+.top-bar{
+  padding:2px 16px 8px;display:flex;justify-content:space-between;
+  align-items:center;flex-shrink:0;
+}
+.logo{color:var(--text);font-size:28px;font-weight:800;letter-spacing:-.5px;}
+.bell{
+  width:40px;height:40px;background:var(--card);border:1px solid var(--border);
+  border-radius:20px;display:flex;align-items:center;justify-content:center;
+  font-size:16px;cursor:pointer;
+}
 
-  .filter-chips {
-    display: flex; gap: 4px;
-    padding: 8px 16px 8px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .filter-chips::-webkit-scrollbar { display: none; }
-  .chip {
-    padding: 6px 14px;
-    border-radius: 999px;
-    background: #1A1A1A;
-    border: 1px solid #2A2A2A;
-    color: #888;
-    font-size: 13px; font-weight: 500;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all 0.15s;
-    user-select: none;
-    flex-shrink: 0;
-  }
-  .chip.active { background: #1E3A1E; border-color: #4CAF50; color: #4CAF50; }
-  .chip:hover { background: #222; }
+/* SEGMENTED */
+.segmented{
+  margin:0 16px 8px;background:var(--card);border-radius:999px;
+  padding:3px;display:flex;flex-shrink:0;
+}
+.seg{
+  flex:1;padding:8px;text-align:center;color:var(--muted);
+  font-size:14px;font-weight:600;border-radius:999px;cursor:pointer;
+  transition:all .2s;user-select:none;
+}
+.seg.on{background:var(--green);color:#fff;}
 
-  .field-card {
-    margin: 0 16px 8px;
-    background: #1A1A1A;
-    border-radius: 16px;
-    border: 1px solid #2A2A2A;
-    overflow: hidden;
-    cursor: pointer;
-    transition: transform 0.15s;
-  }
-  .field-card:hover { transform: scale(0.99); }
-  .field-photo {
-    height: 160px;
-    position: relative;
-    display: flex; align-items: flex-end; justify-content: flex-end;
-    padding: 8px;
-  }
-  .rating-badge {
-    background: rgba(0,0,0,0.6);
-    padding: 4px 8px;
-    border-radius: 999px;
-    color: #FFD700;
-    font-size: 12px; font-weight: 700;
-  }
-  .field-info { padding: 16px; }
-  .field-name-row {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 4px;
-  }
-  .field-name { color: #fff; font-size: 15px; font-weight: 700; }
-  .field-price { color: #4CAF50; font-size: 13px; font-weight: 700; }
-  .field-address { color: #888; font-size: 12px; }
+/* CALENDAR */
+.cal-wrap{border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg);}
+.cal{display:flex;gap:4px;padding:8px 16px;overflow-x:auto;scrollbar-width:none;}
+.cal::-webkit-scrollbar{display:none;}
+.day{
+  display:flex;flex-direction:column;align-items:center;
+  padding:4px 8px;border-radius:12px;border:1px solid transparent;
+  cursor:pointer;min-width:44px;flex-shrink:0;transition:all .15s;
+}
+.day:hover{background:#1A1A1A;}
+.day.sel{border-color:var(--green);background:var(--green-muted);}
+.day.tod{border-color:var(--border);}
+.day-ab{font-size:11px;color:var(--muted);font-weight:500;margin-bottom:3px;}
+.day.sel .day-ab{color:var(--green);}
+.day-nc{width:28px;height:28px;border-radius:14px;display:flex;align-items:center;justify-content:center;}
+.day.tod .day-nc{background:var(--green);}
+.day-n{font-size:15px;font-weight:600;color:var(--text);}
+.day.sel .day-n{color:var(--green);}
+.day.tod .day-n{color:#fff;}
+.day-dot{width:4px;height:4px;border-radius:2px;background:var(--green);margin-top:2px;}
 
-  .match-card {
-    margin: 0 16px 8px;
-    background: #1A1A1A;
-    border-radius: 16px;
-    border: 1px solid #2A2A2A;
-    padding: 16px;
-    cursor: pointer;
-    transition: transform 0.15s;
-  }
-  .match-card:hover { transform: scale(0.99); }
-  .match-header { display: flex; align-items: center; margin-bottom: 12px; }
-  .avatar {
-    width: 40px; height: 40px; border-radius: 20px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 14px; font-weight: 700; color: #fff;
-    margin-right: 10px; flex-shrink: 0;
-  }
-  .org-info { flex: 1; }
-  .org-name { color: #fff; font-size: 14px; font-weight: 600; }
-  .org-label { color: #888; font-size: 11px; }
-  .match-price { color: #4CAF50; font-size: 15px; font-weight: 700; }
-  .divider { height: 1px; background: #2A2A2A; margin: 0 0 10px; }
-  .match-details { margin-bottom: 12px; }
-  .match-field-name { color: #fff; font-size: 14px; font-weight: 600; margin-bottom: 2px; }
-  .match-address { color: #888; font-size: 12px; margin-bottom: 4px; }
-  .match-time { color: #888; font-size: 12px; }
-  .progress-header {
-    display: flex; justify-content: space-between;
-    margin-bottom: 6px;
-  }
-  .progress-label { color: #888; font-size: 12px; }
-  .progress-count { color: #888; font-size: 12px; }
-  .progress-current { color: #4CAF50; font-weight: 700; }
-  .progress-bar {
-    height: 6px; background: #2A2A2A;
-    border-radius: 999px; overflow: hidden;
-  }
-  .progress-fill { height: 100%; background: #4CAF50; border-radius: 999px; }
+/* CONTENT AREA */
+.main-content{flex:1;overflow-y:auto;scrollbar-width:none;}
+.main-content::-webkit-scrollbar{display:none;}
+.tab-p{display:none;padding-bottom:80px;}
+.tab-p.on{display:block;}
 
-  .fab {
-    position: absolute;
-    bottom: 76px; right: 16px;
-    width: 56px; height: 56px;
-    border-radius: 28px;
-    background: #4CAF50;
-    display: none;
-    align-items: center; justify-content: center;
-    font-size: 28px; color: #fff;
-    cursor: pointer;
-    box-shadow: 0 4px 20px rgba(76,175,80,0.5);
-    transition: transform 0.15s;
-    z-index: 10;
-    line-height: 1;
-  }
-  .fab:hover { transform: scale(1.08); }
-  .fab.visible { display: flex; }
+/* FILTERS */
+.chips{display:flex;gap:6px;padding:10px 16px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;}
+.chips::-webkit-scrollbar{display:none;}
+.chip{
+  padding:6px 14px;border-radius:999px;background:var(--card);
+  border:1px solid var(--border);color:var(--muted);
+  font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;
+  transition:all .15s;user-select:none;flex-shrink:0;
+}
+.chip.on{background:var(--green-muted);border-color:var(--green);color:var(--green);}
 
-  .tab-bar {
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-    height: 60px;
-    background: #141414;
-    border-top: 1px solid #2A2A2A;
-    display: flex;
-  }
-  .tab-item {
-    flex: 1;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    gap: 3px;
-    cursor: pointer;
-    color: #888;
-    font-size: 11px; font-weight: 600;
-    transition: color 0.15s;
-    user-select: none;
-  }
-  .tab-item.active { color: #4CAF50; }
-  .tab-icon { font-size: 20px; }
+/* FIELD CARD */
+.field-card{
+  margin:0 16px 10px;background:var(--card);border-radius:var(--radius);
+  border:1px solid var(--border);overflow:hidden;cursor:pointer;
+  transition:transform .15s;
+}
+.field-card:active{transform:scale(.98);}
+.fc-photo{height:160px;position:relative;display:flex;align-items:flex-end;justify-content:flex-end;padding:10px;}
+.fc-badge{
+  background:rgba(0,0,0,.65);padding:4px 10px;border-radius:999px;
+  color:#FFD700;font-size:12px;font-weight:700;
+}
+.fc-body{padding:14px 16px;}
+.fc-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+.fc-name{color:var(--text);font-size:15px;font-weight:700;}
+.fc-price{color:var(--green);font-size:13px;font-weight:700;}
+.fc-addr{color:var(--muted);font-size:12px;}
+
+/* MATCH CARD */
+.match-card{
+  margin:0 16px 10px;background:var(--card);border-radius:var(--radius);
+  border:1px solid var(--border);padding:16px;cursor:pointer;
+  transition:transform .15s;
+}
+.match-card:active{transform:scale(.98);}
+.mc-head{display:flex;align-items:center;gap:10px;}
+.avatar{
+  width:40px;height:40px;border-radius:20px;display:flex;
+  align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:#fff;flex-shrink:0;
+}
+.mc-org{flex:1;}
+.mc-name{color:var(--text);font-size:14px;font-weight:600;}
+.mc-lbl{color:var(--muted);font-size:11px;}
+.mc-price{color:var(--green);font-size:15px;font-weight:700;}
+.divider{height:1px;background:var(--border);margin:10px 0;}
+.mc-field{color:var(--text);font-size:14px;font-weight:600;margin-bottom:2px;}
+.mc-addr{color:var(--muted);font-size:12px;margin-bottom:4px;}
+.mc-time{color:var(--muted);font-size:12px;}
+.prog-hd{display:flex;justify-content:space-between;margin-bottom:6px;}
+.prog-lbl{color:var(--muted);font-size:12px;}
+.prog-cnt{color:var(--muted);font-size:12px;}
+.prog-cur{color:var(--green);font-weight:700;}
+.prog-bar{height:6px;background:var(--border);border-radius:999px;overflow:hidden;}
+.prog-fill{height:100%;background:var(--green);border-radius:999px;}
+
+/* FAB */
+.fab{
+  position:absolute;bottom:72px;right:16px;width:56px;height:56px;
+  border-radius:28px;background:var(--green);display:none;
+  align-items:center;justify-content:center;font-size:28px;color:#fff;
+  cursor:pointer;box-shadow:0 4px 20px rgba(76,175,80,.5);
+  transition:transform .15s;z-index:5;line-height:1;
+}
+.fab:active{transform:scale(.93);}
+.fab.show{display:flex;}
+
+/* TAB BAR */
+.tab-bar{
+  position:absolute;bottom:0;left:0;right:0;height:60px;
+  background:var(--tabbar);border-top:1px solid var(--border);
+  display:flex;z-index:5;
+}
+.tb-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:2px;cursor:pointer;color:var(--muted);
+  font-size:10px;font-weight:600;transition:color .15s;user-select:none;
+}
+.tb-item.on{color:var(--green);}
+.tb-icon{font-size:20px;}
+
+/* FIELD DETAIL */
+.fd-hero{height:240px;position:relative;flex-shrink:0;}
+.fd-dots{
+  position:absolute;bottom:10px;left:50%;transform:translateX(-50%);
+  display:flex;gap:5px;
+}
+.fd-dot{width:6px;height:6px;border-radius:3px;background:rgba(255,255,255,.4);}
+.fd-dot.on{background:#fff;width:18px;}
+.fd-info{padding:16px;}
+.fd-name{color:var(--text);font-size:20px;font-weight:800;margin-bottom:4px;}
+.fd-row{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px;margin-bottom:2px;}
+.fd-rating{color:#FFD700;font-weight:700;}
+.section-title{color:var(--text);font-size:15px;font-weight:700;padding:16px 16px 10px;}
+.slots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 16px 16px;}
+.slot{
+  padding:12px 8px;border-radius:12px;background:var(--card);
+  border:1px solid var(--border);text-align:center;
+  font-size:14px;font-weight:600;color:var(--text);cursor:pointer;
+  transition:all .15s;
+}
+.slot.busy{color:var(--muted);text-decoration:line-through;cursor:default;opacity:.5;}
+.slot.sel{border-color:var(--green);background:var(--green-muted);color:var(--green);}
+.slot:not(.busy):hover{border-color:var(--green);}
+
+/* MATCH DETAIL */
+.md-hero{padding:16px;background:var(--card);border-bottom:1px solid var(--border);}
+.md-org{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+.md-org-info h3{color:var(--text);font-size:16px;font-weight:700;}
+.md-org-info p{color:var(--muted);font-size:12px;}
+.md-field{color:var(--text);font-size:15px;font-weight:700;margin-bottom:2px;}
+.md-addr{color:var(--muted);font-size:13px;margin-bottom:8px;}
+.md-time-row{display:flex;gap:12px;}
+.tag{
+  background:var(--bg);border:1px solid var(--border);
+  padding:4px 12px;border-radius:999px;color:var(--muted);font-size:12px;
+}
+.tag.green{border-color:var(--green);color:var(--green);}
+.rules-card{
+  margin:16px;background:var(--card);border-radius:var(--radius);
+  border:1px solid var(--border);padding:16px;
+}
+.rules-title{color:var(--text);font-size:13px;font-weight:700;margin-bottom:8px;}
+.rules-text{color:var(--muted);font-size:13px;font-style:italic;line-height:1.5;}
+.participants-section{padding:0 16px;}
+.part-title{color:var(--text);font-size:15px;font-weight:700;margin-bottom:12px;}
+.part-row{display:flex;flex-wrap:wrap;gap:10px;}
+.part-av{
+  width:44px;height:44px;border-radius:22px;display:flex;
+  align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;
+}
+.part-av.empty{
+  background:transparent;border:2px dashed var(--border);color:var(--muted);font-size:18px;
+}
+
+/* CONFIRMATION */
+.conf-card{
+  margin:16px;background:var(--card);border-radius:var(--radius);
+  border:1px solid var(--border);overflow:hidden;
+}
+.conf-row{
+  display:flex;align-items:center;gap:12px;padding:14px 16px;
+  border-bottom:1px solid var(--border);
+}
+.conf-row:last-child{border-bottom:none;}
+.conf-icon{font-size:20px;width:28px;text-align:center;}
+.conf-label{color:var(--muted);font-size:12px;margin-bottom:2px;}
+.conf-val{color:var(--text);font-size:14px;font-weight:600;}
+.price-card{
+  margin:0 16px 16px;background:var(--card);border-radius:var(--radius);
+  border:1px solid var(--border);padding:16px;
+}
+.price-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.price-label{color:var(--muted);font-size:14px;}
+.price-val{color:var(--text);font-size:14px;font-weight:600;}
+.price-val.green{color:var(--green);}
+.price-total .price-label{color:var(--text);font-size:16px;font-weight:700;}
+.price-total .price-val{color:var(--green);font-size:20px;font-weight:800;}
+.price-note{color:var(--muted);font-size:11px;text-align:center;margin-top:6px;}
+
+/* PAYMENT */
+.pay-amount{
+  text-align:center;padding:32px 16px 24px;
+}
+.pay-sum{color:var(--green);font-size:40px;font-weight:800;}
+.pay-sub{color:var(--muted);font-size:14px;margin-top:4px;}
+.pay-form{padding:0 16px;}
+.inp-group{margin-bottom:14px;}
+.inp-lbl{color:var(--muted);font-size:12px;font-weight:600;margin-bottom:6px;}
+.inp{
+  width:100%;background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:14px 16px;color:var(--text);
+  font-size:16px;outline:none;transition:border-color .2s;
+}
+.inp:focus{border-color:var(--green);}
+.inp::placeholder{color:var(--muted);}
+.inp-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.toggle-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 16px;background:var(--card);border-radius:12px;
+  border:1px solid var(--border);margin-bottom:14px;
+}
+.toggle-lbl{color:var(--text);font-size:14px;font-weight:600;}
+.toggle{
+  width:48px;height:28px;border-radius:14px;background:var(--border);
+  cursor:pointer;position:relative;transition:background .2s;
+}
+.toggle.on{background:var(--green);}
+.toggle::after{
+  content:'';position:absolute;width:22px;height:22px;border-radius:11px;
+  background:#fff;top:3px;left:3px;transition:transform .2s;
+}
+.toggle.on::after{transform:translateX(20px);}
+
+/* SUCCESS */
+.success-screen{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:32px;text-align:center;
+}
+.check-circle{
+  width:96px;height:96px;border-radius:48px;background:var(--green);
+  display:flex;align-items:center;justify-content:center;
+  font-size:48px;margin-bottom:24px;
+  animation:pop .4s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes pop{from{transform:scale(0);opacity:0;}to{transform:scale(1);opacity:1;}}
+.success-title{color:var(--text);font-size:28px;font-weight:800;margin-bottom:8px;}
+.success-sub{color:var(--muted);font-size:15px;margin-bottom:32px;line-height:1.5;}
+.success-card{
+  width:100%;background:var(--card);border-radius:var(--radius);
+  border:1px solid var(--border);padding:16px;margin-bottom:28px;text-align:left;
+}
+.success-row{display:flex;justify-content:space-between;margin-bottom:6px;}
+.success-row:last-child{margin-bottom:0;}
+.s-key{color:var(--muted);font-size:13px;}
+.s-val{color:var(--text);font-size:13px;font-weight:600;}
+
+/* STICKY CTA */
+.cta-bar{
+  position:sticky;bottom:0;padding:12px 16px;
+  background:linear-gradient(to top, var(--bg) 70%, transparent);
+  flex-shrink:0;
+}
+.cta-btn{
+  width:100%;padding:16px;border-radius:14px;background:var(--green);
+  color:#fff;font-size:16px;font-weight:700;cursor:pointer;
+  transition:opacity .15s;border:none;
+}
+.cta-btn:active{opacity:.85;}
+.cta-btn:disabled{background:var(--muted);cursor:default;}
 </style>
 </head>
 <body>
-<div class="phone">
-  <div class="status-bar">
-    <span class="status-time">9:41</span>
-    <div class="status-icons">
-      <span>●●●</span>
-      <span>WiFi</span>
-      <span>🔋</span>
-    </div>
-  </div>
+<div class="phone" id="app">
 
+<!-- SCREEN 1: MAIN -->
+<div class="screen active" id="s-main">
+  <div class="status-bar">
+    <span class="s-time" id="clock">9:41</span>
+    <div class="s-icons"><span>●●●</span><span>WiFi</span><span>🔋</span></div>
+  </div>
   <div class="top-bar">
     <div class="logo">oino</div>
-    <div class="bell-btn">🔔</div>
+    <div class="bell">🔔</div>
   </div>
-
   <div class="segmented">
-    <div class="seg-btn active" onclick="switchTab(0, this)">Поля</div>
-    <div class="seg-btn" onclick="switchTab(1, this)">Матчи</div>
+    <div class="seg on" onclick="switchSeg(0)">Поля</div>
+    <div class="seg" onclick="switchSeg(1)">Матчи</div>
   </div>
-
-  <div class="calendar-strip" id="calendar"></div>
-
-  <div class="content">
-    <!-- ПОЛЯ -->
-    <div class="tab-pane active" id="tab-fields">
-      <div class="filter-chips">
-        <div class="chip" onclick="toggleChip(this)">Газон</div>
-        <div class="chip" onclick="toggleChip(this)">Крытое</div>
-        <div class="chip" onclick="toggleChip(this)">5×5</div>
-        <div class="chip" onclick="toggleChip(this)">Душ</div>
-        <div class="chip" onclick="toggleChip(this)">Парковка</div>
-      </div>
-
-      <div class="field-card">
-        <div class="field-photo" style="background: linear-gradient(135deg, #1B4332, #2D6A4F);">
-          <div class="rating-badge">★ 4.9</div>
-        </div>
-        <div class="field-info">
-          <div class="field-name-row">
-            <div class="field-name">Арена Чемпион</div>
-            <div class="field-price">от 8 000 ₸/ч</div>
-          </div>
-          <div class="field-address">ул. Аль-Фараби, 17 · 1.2 км</div>
-        </div>
-      </div>
-
-      <div class="field-card">
-        <div class="field-photo" style="background: linear-gradient(135deg, #1A3A5C, #2E6DA4);">
-          <div class="rating-badge">★ 4.7</div>
-        </div>
-        <div class="field-info">
-          <div class="field-name-row">
-            <div class="field-name">Футбольный центр Pro</div>
-            <div class="field-price">от 12 000 ₸/ч</div>
-          </div>
-          <div class="field-address">пр. Достык, 89 · 3.4 км</div>
-        </div>
-      </div>
-
-      <div class="field-card">
-        <div class="field-photo" style="background: linear-gradient(135deg, #3D1A1A, #8B3A3A);">
-          <div class="rating-badge">★ 4.5</div>
-        </div>
-        <div class="field-info">
-          <div class="field-name-row">
-            <div class="field-name">Спорткомплекс Олимп</div>
-            <div class="field-price">от 6 500 ₸/ч</div>
-          </div>
-          <div class="field-address">ул. Тимирязева, 42 · 5.1 км</div>
-        </div>
-      </div>
+  <div class="cal-wrap"><div class="cal" id="cal"></div></div>
+  <div class="main-content">
+    <div class="tab-p on" id="t-fields">
+      <div class="chips" id="chips-fields"></div>
+      <div id="field-list"></div>
     </div>
-
-    <!-- МАТЧИ -->
-    <div class="tab-pane" id="tab-matches">
-      <div class="filter-chips">
-        <div class="chip" onclick="toggleChip(this)">Утро</div>
-        <div class="chip" onclick="toggleChip(this)">Вечер</div>
-        <div class="chip" onclick="toggleChip(this)">Новички</div>
-        <div class="chip" onclick="toggleChip(this)">Любители</div>
-        <div class="chip" onclick="toggleChip(this)">Профи</div>
-      </div>
-
-      <div class="match-card">
-        <div class="match-header">
-          <div class="avatar" style="background:#1565C0">АМ</div>
-          <div class="org-info">
-            <div class="org-name">Алишер М.</div>
-            <div class="org-label">Организатор</div>
-          </div>
-          <div class="match-price">1 500 ₸</div>
-        </div>
-        <div class="divider"></div>
-        <div class="match-details">
-          <div class="match-field-name">Арена Чемпион</div>
-          <div class="match-address">ул. Аль-Фараби, 17</div>
-          <div class="match-time">18:00 · 1.5 ч</div>
-        </div>
-        <div class="progress-header">
-          <span class="progress-label">Собрано игроков</span>
-          <span class="progress-count"><span class="progress-current">7</span>/10</span>
-        </div>
-        <div class="progress-bar"><div class="progress-fill" style="width:70%"></div></div>
-      </div>
-
-      <div class="match-card">
-        <div class="match-header">
-          <div class="avatar" style="background:#6A1572">ДК</div>
-          <div class="org-info">
-            <div class="org-name">Денис К.</div>
-            <div class="org-label">Организатор</div>
-          </div>
-          <div class="match-price">2 000 ₸</div>
-        </div>
-        <div class="divider"></div>
-        <div class="match-details">
-          <div class="match-field-name">Футбольный центр Pro</div>
-          <div class="match-address">пр. Достык, 89</div>
-          <div class="match-time">20:00 · 2 ч</div>
-        </div>
-        <div class="progress-header">
-          <span class="progress-label">Собрано игроков</span>
-          <span class="progress-count"><span class="progress-current">4</span>/8</span>
-        </div>
-        <div class="progress-bar"><div class="progress-fill" style="width:50%"></div></div>
-      </div>
+    <div class="tab-p" id="t-matches">
+      <div class="chips" id="chips-matches"></div>
+      <div id="match-list"></div>
     </div>
   </div>
-
-  <div class="fab" id="fab">＋</div>
-
+  <div class="fab" id="fab" onclick="alert('Сначала забронируйте поле — затем можно опубликовать матч!')">＋</div>
   <div class="tab-bar">
-    <div class="tab-item active" onclick="switchBottomTab(this)">
-      <span class="tab-icon">⚽</span>Главная
-    </div>
-    <div class="tab-item" onclick="switchBottomTab(this)">
-      <span class="tab-icon">📅</span>Мои игры
-    </div>
-    <div class="tab-item" onclick="switchBottomTab(this)">
-      <span class="tab-icon">👤</span>Профиль
-    </div>
+    <div class="tb-item on"><span class="tb-icon">⚽</span>Главная</div>
+    <div class="tb-item"><span class="tb-icon">📅</span>Мои игры</div>
+    <div class="tb-item"><span class="tb-icon">👤</span>Профиль</div>
   </div>
 </div>
 
-<script>
-  // Calendar
-  const DAY_ABBREVS = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
-  const today = new Date();
-  const bookedOffsets = [2, 5];
+<!-- SCREEN 2: FIELD DETAIL -->
+<div class="screen" id="s-field">
+  <div class="header">
+    <div class="back-btn" onclick="goBack()">←</div>
+    <div class="header-title" id="fd-title"></div>
+  </div>
+  <div class="screen-scroll">
+    <div class="fd-hero" id="fd-hero">
+      <div class="fd-dots">
+        <div class="fd-dot on"></div><div class="fd-dot"></div><div class="fd-dot"></div>
+      </div>
+    </div>
+    <div class="fd-info">
+      <div class="fd-name" id="fd-name"></div>
+      <div class="fd-row"><span id="fd-addr"></span></div>
+      <div class="fd-row"><span class="fd-rating" id="fd-rating"></span><span id="fd-dist" style="color:var(--muted)"></span></div>
+    </div>
+    <div class="section-title" id="fd-date-title"></div>
+    <div class="slots" id="slots"></div>
+  </div>
+  <div class="cta-bar">
+    <button class="cta-btn" id="fd-cta" disabled onclick="goTo('s-booking')">Выберите время</button>
+  </div>
+</div>
 
-  function getWeekDates() {
-    const dates = [];
-    const mon = new Date(today);
-    const d = mon.getDay();
-    mon.setDate(mon.getDate() - (d === 0 ? 6 : d - 1));
-    for (let i = 0; i < 14; i++) {
-      const x = new Date(mon);
-      x.setDate(mon.getDate() + i);
-      dates.push(x);
-    }
-    return dates;
-  }
+<!-- SCREEN 3: MATCH DETAIL -->
+<div class="screen" id="s-match">
+  <div class="header">
+    <div class="back-btn" onclick="goBack()">←</div>
+    <div class="header-title">Матч</div>
+  </div>
+  <div class="screen-scroll">
+    <div class="md-hero">
+      <div class="md-org" id="md-org"></div>
+      <div class="md-field" id="md-field"></div>
+      <div class="md-addr" id="md-addr"></div>
+      <div class="md-time-row" id="md-tags"></div>
+    </div>
+    <div class="rules-card">
+      <div class="rules-title">📋 Правила игры</div>
+      <div class="rules-text">Играем спокойно, без жёстких подкатов. Приходите за 10 минут до начала. Манишки будут на месте.</div>
+    </div>
+    <div class="participants-section">
+      <div class="part-title" id="md-part-title"></div>
+      <div class="part-row" id="md-parts"></div>
+    </div>
+  </div>
+  <div class="cta-bar">
+    <button class="cta-btn" id="md-cta" onclick="goTo('s-join')">Присоединиться за — ₸</button>
+  </div>
+</div>
 
-  let selectedDate = new Date(today);
+<!-- SCREEN 4: BOOKING CONFIRMATION -->
+<div class="screen" id="s-booking">
+  <div class="header">
+    <div class="back-btn" onclick="goBack()">←</div>
+    <div class="header-title">Подтверждение</div>
+  </div>
+  <div class="screen-scroll">
+    <div style="padding:16px 0 0;color:var(--muted);font-size:13px;padding-left:16px;">Проверьте детали бронирования</div>
+    <div class="conf-card">
+      <div class="conf-row">
+        <span class="conf-icon">📅</span>
+        <div><div class="conf-label">Дата</div><div class="conf-val" id="bc-date"></div></div>
+      </div>
+      <div class="conf-row">
+        <span class="conf-icon">⏰</span>
+        <div><div class="conf-label">Время</div><div class="conf-val" id="bc-time"></div></div>
+      </div>
+      <div class="conf-row">
+        <span class="conf-icon">📍</span>
+        <div><div class="conf-label">Место</div><div class="conf-val" id="bc-place"></div></div>
+      </div>
+      <div class="conf-row">
+        <span class="conf-icon">⏱</span>
+        <div><div class="conf-label">Длительность</div><div class="conf-val">1 час</div></div>
+      </div>
+    </div>
+    <div class="price-card">
+      <div class="price-row"><span class="price-label">Аренда поля</span><span class="price-val" id="bc-price1"></span></div>
+      <div class="price-row"><span class="price-label">Тариф</span><span class="price-val green">Базовый</span></div>
+      <div style="height:1px;background:var(--border);margin:10px 0;"></div>
+      <div class="price-row price-total"><span class="price-label">Итого</span><span class="price-val green" id="bc-total"></span></div>
+    </div>
+  </div>
+  <div class="cta-bar">
+    <button class="cta-btn" onclick="goTo('s-payment')">Перейти к оплате →</button>
+  </div>
+</div>
 
-  function renderCalendar() {
-    const strip = document.getElementById('calendar');
-    strip.innerHTML = '';
-    getWeekDates().forEach(date => {
-      const isToday = date.toDateString() === today.toDateString();
-      const isSelected = date.toDateString() === selectedDate.toDateString();
-      const diffDays = Math.round((date - today) / 86400000);
-      const hasBooking = bookedOffsets.includes(diffDays);
+<!-- SCREEN 5: MATCH JOIN CONFIRMATION -->
+<div class="screen" id="s-join">
+  <div class="header">
+    <div class="back-btn" onclick="goBack()">←</div>
+    <div class="header-title">Подтверждение</div>
+  </div>
+  <div class="screen-scroll">
+    <div class="conf-card" style="margin-top:16px;" id="jc-match-info"></div>
+    <div class="price-card">
+      <div class="price-row"><span class="price-label">Аренда поля (всего)</span><span class="price-val" id="jc-full"></span></div>
+      <div class="price-row"><span class="price-label">Участников</span><span class="price-val" id="jc-count"></span></div>
+      <div style="height:1px;background:var(--border);margin:10px 0;"></div>
+      <div class="price-row price-total"><span class="price-label">Ваш взнос</span><span class="price-val green" id="jc-share"></span></div>
+      <div class="price-note">Средства поступят организатору после матча</div>
+    </div>
+  </div>
+  <div class="cta-bar">
+    <button class="cta-btn" id="jc-btn" onclick="goTo('s-payment')">Оплатить — ₸</button>
+  </div>
+</div>
 
-      const cell = document.createElement('div');
-      cell.className = 'day-cell' + (isSelected ? ' selected' : '') + (isToday && !isSelected ? ' today' : '');
-      cell.innerHTML = `
-        <div class="day-abbrev">${DAY_ABBREVS[date.getDay()]}</div>
-        <div class="day-num-wrap ${isToday ? 'today-circle' : ''}">
-          <div class="day-num">${date.getDate()}</div>
+<!-- SCREEN 6: PAYMENT -->
+<div class="screen" id="s-payment">
+  <div class="header">
+    <div class="back-btn" onclick="goBack()">←</div>
+    <div class="header-title">Оплата</div>
+  </div>
+  <div class="screen-scroll">
+    <div class="pay-amount">
+      <div class="pay-sum" id="pay-sum"></div>
+      <div class="pay-sub" id="pay-sub"></div>
+    </div>
+    <div class="pay-form">
+      <div class="inp-group">
+        <div class="inp-lbl">Номер карты</div>
+        <input class="inp" id="card-num" type="tel" placeholder="•••• •••• •••• ••••" maxlength="19">
+      </div>
+      <div class="inp-row">
+        <div class="inp-group">
+          <div class="inp-lbl">Срок</div>
+          <input class="inp" id="card-exp" type="tel" placeholder="MM/YY" maxlength="5">
         </div>
-        ${hasBooking ? '<div class="day-dot"></div>' : ''}
-      `;
-      if (isToday) cell.querySelector('.day-num-wrap').style.background = isSelected ? 'transparent' : '#4CAF50';
-      cell.onclick = () => { selectedDate = date; renderCalendar(); };
-      strip.appendChild(cell);
-    });
-  }
-  renderCalendar();
+        <div class="inp-group">
+          <div class="inp-lbl">CVV</div>
+          <input class="inp" id="card-cvv" type="tel" placeholder="•••" maxlength="3">
+        </div>
+      </div>
+      <div class="inp-group">
+        <div class="inp-lbl">Имя держателя</div>
+        <input class="inp" id="card-name" type="text" placeholder="IVAN IVANOV">
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-lbl">Сохранить карту</span>
+        <div class="toggle" onclick="this.classList.toggle('on')"></div>
+      </div>
+    </div>
+  </div>
+  <div class="cta-bar">
+    <button class="cta-btn" onclick="processPayment()">Оплатить</button>
+  </div>
+</div>
 
-  // Segmented control
-  function switchTab(index, btn) {
-    document.querySelectorAll('.seg-btn').forEach((b, i) => {
-      b.classList.toggle('active', i === index);
-    });
-    document.getElementById('tab-fields').classList.toggle('active', index === 0);
-    document.getElementById('tab-matches').classList.toggle('active', index === 1);
-    document.getElementById('fab').classList.toggle('visible', index === 1);
-  }
+<!-- SCREEN 7: SUCCESS -->
+<div class="screen" id="s-success">
+  <div class="success-screen">
+    <div class="check-circle">✓</div>
+    <div class="success-title" id="succ-title">Готово!</div>
+    <div class="success-sub" id="succ-sub">Ваша бронь подтверждена</div>
+    <div class="success-card" id="succ-card"></div>
+    <button class="cta-btn" onclick="goHome()">На главную</button>
+  </div>
+</div>
 
-  // Filter chips
-  function toggleChip(el) {
-    el.classList.toggle('active');
-  }
+</div>
 
-  // Bottom tabs
-  function switchBottomTab(el) {
-    document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
-    el.classList.add('active');
+<script>
+// ---- DATA ----
+const DAYS = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+const MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+const FIELD_FILTERS = ['Газон','Крытое','5×5','Душ','Парковка'];
+const MATCH_FILTERS = ['Утро','Вечер','Новички','Любители','Профи'];
+const FIELDS = [
+  {id:1,name:'Арена Чемпион',addr:'ул. Аль-Фараби, 17',dist:1.2,rating:4.9,price:8000,g:['#1B4332','#2D6A4F']},
+  {id:2,name:'Футбольный центр Pro',addr:'пр. Достык, 89',dist:3.4,rating:4.7,price:12000,g:['#1A3A5C','#2E6DA4']},
+  {id:3,name:'Спорткомплекс Олимп',addr:'ул. Тимирязева, 42',dist:5.1,rating:4.5,price:6500,g:['#3D1A1A','#8B3A3A']},
+];
+const MATCHES = [
+  {id:1,org:'Алишер М.',ini:'АМ',col:'#1565C0',field:'Арена Чемпион',addr:'ул. Аль-Фараби, 17',time:'18:00',dur:'1.5 ч',joined:7,total:10,price:1500},
+  {id:2,org:'Денис К.',ini:'ДК',col:'#6A1572',field:'Футбольный центр Pro',addr:'пр. Достык, 89',time:'20:00',dur:'2 ч',joined:4,total:8,price:2000},
+];
+const PART_COLORS=['#1565C0','#2E7D32','#6A1572','#BF360C','#0277BD','#4527A0','#558B2F'];
+const BOOKED_SLOTS=[10,11,12,16,21];
+const BOOKED_OFFSETS=[2,5];
+
+// ---- STATE ----
+let state = {
+  seg:0, selectedDate:new Date(),
+  currentField:null, currentMatch:null,
+  selectedSlot:null, flowType:null,
+  stack:['s-main'],
+};
+
+// ---- CLOCK ----
+function updateClock(){
+  const n=new Date();
+  document.getElementById('clock').textContent=n.getHours()+':'+(n.getMinutes()<10?'0':'')+n.getMinutes();
+}
+updateClock(); setInterval(updateClock,10000);
+
+// ---- NAVIGATION ----
+function goTo(id){
+  const cur=state.stack[state.stack.length-1];
+  document.getElementById(cur).classList.remove('active');
+  document.getElementById(cur).classList.add('prev');
+  document.getElementById(id).classList.add('active');
+  state.stack.push(id);
+}
+function goBack(){
+  if(state.stack.length<2)return;
+  const cur=state.stack.pop();
+  const prev=state.stack[state.stack.length-1];
+  document.getElementById(cur).classList.remove('active');
+  document.getElementById(prev).classList.remove('prev');
+  document.getElementById(prev).classList.add('active');
+}
+function goHome(){
+  state.stack.forEach(id=>{ const el=document.getElementById(id); if(el){el.classList.remove('active','prev');} });
+  state.stack=['s-main'];
+  state.selectedSlot=null;
+  document.getElementById('s-main').classList.add('active');
+  document.getElementById('fd-cta').disabled=true;
+  document.getElementById('fd-cta').textContent='Выберите время';
+  renderSlots();
+}
+
+// ---- CALENDAR ----
+function fmtDate(d){return DAYS[d.getDay()]+', '+d.getDate()+' '+MONTHS[d.getMonth()];}
+function getWeekDates(){
+  const today=new Date();const dates=[];
+  const mon=new Date(today);const dw=mon.getDay();
+  mon.setDate(mon.getDate()-(dw===0?6:dw-1));
+  for(let i=0;i<14;i++){const x=new Date(mon);x.setDate(mon.getDate()+i);dates.push(x);}
+  return dates;
+}
+function renderCalendar(){
+  const today=new Date();const cal=document.getElementById('cal');
+  cal.innerHTML='';
+  getWeekDates().forEach(d=>{
+    const isToday=d.toDateString()===today.toDateString();
+    const isSel=d.toDateString()===state.selectedDate.toDateString();
+    const diff=Math.round((d-today)/86400000);
+    const hasBooking=BOOKED_OFFSETS.includes(diff);
+    const el=document.createElement('div');
+    el.className='day'+(isSel?' sel':'')+(isToday&&!isSel?' tod':'');
+    el.innerHTML=`<div class="day-ab">${DAYS[d.getDay()]}</div>
+      <div class="day-nc"><div class="day-n">${d.getDate()}</div></div>
+      ${hasBooking?'<div class="day-dot"></div>':''}`;
+    if(isToday&&!isSel) el.querySelector('.day-nc').style.background='#4CAF50';
+    if(isToday&&!isSel) el.querySelector('.day-n').style.color='#fff';
+    el.onclick=()=>{state.selectedDate=d;renderCalendar();};
+    cal.appendChild(el);
+    if(isSel) setTimeout(()=>el.scrollIntoView({inline:'center',behavior:'smooth'}),0);
+  });
+}
+
+// ---- CHIPS ----
+function renderChips(id,opts){
+  const el=document.getElementById(id);
+  el.innerHTML=opts.map(o=>`<div class="chip" onclick="this.classList.toggle('on')">${o}</div>`).join('');
+}
+
+// ---- FIELDS ----
+function renderFields(){
+  document.getElementById('field-list').innerHTML=FIELDS.map(f=>`
+    <div class="field-card" onclick="openField(${f.id})">
+      <div class="fc-photo" style="background:linear-gradient(135deg,${f.g[0]},${f.g[1]})">
+        <div class="fc-badge">★ ${f.rating.toFixed(1)}</div>
+      </div>
+      <div class="fc-body">
+        <div class="fc-row"><div class="fc-name">${f.name}</div><div class="fc-price">от ${f.price.toLocaleString('ru')} ₸/ч</div></div>
+        <div class="fc-addr">${f.addr} · ${f.dist} км</div>
+      </div>
+    </div>`).join('');
+}
+function openField(id){
+  state.currentField=FIELDS.find(f=>f.id===id);
+  state.selectedSlot=null;
+  const f=state.currentField;
+  document.getElementById('fd-title').textContent=f.name;
+  document.getElementById('fd-hero').style.background=`linear-gradient(135deg,${f.g[0]},${f.g[1]})`;
+  document.getElementById('fd-name').textContent=f.name;
+  document.getElementById('fd-addr').textContent=f.addr;
+  document.getElementById('fd-rating').textContent='★ '+f.rating.toFixed(1);
+  document.getElementById('fd-dist').textContent='  · '+f.dist+' км';
+  document.getElementById('fd-date-title').textContent='Расписание на '+fmtDate(state.selectedDate);
+  document.getElementById('fd-cta').disabled=true;
+  document.getElementById('fd-cta').textContent='Выберите время';
+  renderSlots();
+  goTo('s-field');
+}
+function renderSlots(){
+  const slots=[10,11,12,13,14,15,16,17,18,19,20,21];
+  document.getElementById('slots').innerHTML=slots.map(h=>{
+    const busy=BOOKED_SLOTS.includes(h);
+    const sel=state.selectedSlot===h;
+    return `<div class="slot${busy?' busy':''}${sel?' sel':''}" onclick="${busy?'':'selectSlot('+h+')'}">${h}:00</div>`;
+  }).join('');
+}
+function selectSlot(h){
+  state.selectedSlot=h;
+  renderSlots();
+  const f=state.currentField;
+  const cta=document.getElementById('fd-cta');
+  cta.disabled=false;
+  cta.textContent=`Забронировать за ${f.price.toLocaleString('ru')} ₸`;
+  cta.onclick=()=>openBooking();
+}
+function openBooking(){
+  const f=state.currentField;const h=state.selectedSlot;
+  state.flowType='field';
+  document.getElementById('bc-date').textContent=fmtDate(state.selectedDate);
+  document.getElementById('bc-time').textContent=h+':00 – '+(h+1)+':00';
+  document.getElementById('bc-place').textContent=f.name+', '+f.addr;
+  document.getElementById('bc-price1').textContent=f.price.toLocaleString('ru')+' ₸';
+  document.getElementById('bc-total').textContent=f.price.toLocaleString('ru')+' ₸';
+  document.getElementById('pay-sum').textContent=f.price.toLocaleString('ru')+' ₸';
+  document.getElementById('pay-sub').textContent=f.name;
+  document.getElementById('succ-title').textContent='Готово!';
+  document.getElementById('succ-sub').textContent='Ваша бронь подтверждена';
+  document.getElementById('succ-card').innerHTML=`
+    <div class="success-row"><span class="s-key">Поле</span><span class="s-val">${f.name}</span></div>
+    <div class="success-row"><span class="s-key">Дата</span><span class="s-val">${fmtDate(state.selectedDate)}</span></div>
+    <div class="success-row"><span class="s-key">Время</span><span class="s-val">${h}:00 – ${h+1}:00</span></div>
+    <div class="success-row"><span class="s-key">Сумма</span><span class="s-val" style="color:var(--green)">${f.price.toLocaleString('ru')} ₸</span></div>`;
+  goTo('s-booking');
+}
+
+// ---- MATCHES ----
+function renderMatches(){
+  document.getElementById('match-list').innerHTML=MATCHES.map(m=>`
+    <div class="match-card" onclick="openMatch(${m.id})">
+      <div class="mc-head">
+        <div class="avatar" style="background:${m.col}">${m.ini}</div>
+        <div class="mc-org"><div class="mc-name">${m.org}</div><div class="mc-lbl">Организатор</div></div>
+        <div class="mc-price">${m.price.toLocaleString('ru')} ₸</div>
+      </div>
+      <div class="divider"></div>
+      <div class="mc-field">${m.field}</div>
+      <div class="mc-addr">${m.addr}</div>
+      <div class="mc-time">${m.time} · ${m.dur}</div>
+      <div style="margin-top:10px">
+        <div class="prog-hd"><span class="prog-lbl">Собрано игроков</span><span class="prog-cnt"><span class="prog-cur">${m.joined}</span>/${m.total}</span></div>
+        <div class="prog-bar"><div class="prog-fill" style="width:${m.joined/m.total*100}%"></div></div>
+      </div>
+    </div>`).join('');
+}
+function openMatch(id){
+  state.currentMatch=MATCHES.find(m=>m.id===id);
+  state.flowType='match';
+  const m=state.currentMatch;
+  document.getElementById('md-org').innerHTML=`
+    <div class="avatar" style="background:${m.col};width:48px;height:48px;border-radius:24px;font-size:16px">${m.ini}</div>
+    <div class="md-org-info"><h3>${m.org}</h3><p>Создатель матча</p></div>`;
+  document.getElementById('md-field').textContent=m.field;
+  document.getElementById('md-addr').textContent=m.addr;
+  document.getElementById('md-tags').innerHTML=`
+    <div class="tag">${m.time}</div>
+    <div class="tag">${m.dur}</div>
+    <div class="tag green">${m.joined}/${m.total} игроков</div>`;
+  document.getElementById('md-part-title').textContent=`Участники (${m.joined}/${m.total})`;
+  const partColors=['#1565C0','#2E7D32','#6A1572','#BF360C','#0277BD','#4527A0','#558B2F'];
+  const partNames=['АМ','ДК','СО','ИП','КВ','ТМ','РА'];
+  let partsHtml='';
+  for(let i=0;i<m.joined;i++) partsHtml+=`<div class="part-av" style="background:${partColors[i%7]}">${partNames[i%7]}</div>`;
+  for(let i=m.joined;i<m.total;i++) partsHtml+=`<div class="part-av empty">?</div>`;
+  document.getElementById('md-parts').innerHTML=partsHtml;
+  document.getElementById('md-cta').textContent=`Присоединиться за ${m.price.toLocaleString('ru')} ₸`;
+  document.getElementById('md-cta').onclick=()=>openJoin();
+  goTo('s-match');
+}
+function openJoin(){
+  const m=state.currentMatch;
+  const totalField=m.price*m.total;
+  document.getElementById('jc-match-info').innerHTML=`
+    <div class="conf-row">
+      <div class="avatar" style="background:${m.col};width:40px;height:40px;border-radius:20px;font-size:13px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0">${m.ini}</div>
+      <div><div class="conf-label">Организатор</div><div class="conf-val">${m.org}</div></div>
+    </div>
+    <div class="conf-row"><span class="conf-icon">📍</span><div><div class="conf-label">Место</div><div class="conf-val">${m.field}</div></div></div>
+    <div class="conf-row"><span class="conf-icon">⏰</span><div><div class="conf-label">Время</div><div class="conf-val">${m.time} · ${m.dur}</div></div></div>`;
+  document.getElementById('jc-full').textContent=totalField.toLocaleString('ru')+' ₸';
+  document.getElementById('jc-count').textContent=m.total+' чел';
+  document.getElementById('jc-share').textContent=m.price.toLocaleString('ru')+' ₸';
+  document.getElementById('jc-btn').textContent=`Оплатить ${m.price.toLocaleString('ru')} ₸ →`;
+  document.getElementById('pay-sum').textContent=m.price.toLocaleString('ru')+' ₸';
+  document.getElementById('pay-sub').textContent=m.field+' · '+m.time;
+  document.getElementById('succ-title').textContent='Вы в игре!';
+  document.getElementById('succ-sub').textContent='Организатор получит уведомление. Приходите вовремя!';
+  document.getElementById('succ-card').innerHTML=`
+    <div class="success-row"><span class="s-key">Матч</span><span class="s-val">${m.field}</span></div>
+    <div class="success-row"><span class="s-key">Дата</span><span class="s-val">${fmtDate(state.selectedDate)}</span></div>
+    <div class="success-row"><span class="s-key">Время</span><span class="s-val">${m.time} · ${m.dur}</span></div>
+    <div class="success-row"><span class="s-key">Взнос</span><span class="s-val" style="color:var(--green)">${m.price.toLocaleString('ru')} ₸</span></div>`;
+  goTo('s-join');
+}
+
+// ---- PAYMENT ----
+document.getElementById('card-num').addEventListener('input',function(){
+  let v=this.value.replace(/\D/g,'').slice(0,16);
+  this.value=v.match(/.{1,4}/g)?.join(' ')||v;
+});
+document.getElementById('card-exp').addEventListener('input',function(){
+  let v=this.value.replace(/\D/g,'').slice(0,4);
+  if(v.length>2) v=v.slice(0,2)+'/'+v.slice(2);
+  this.value=v;
+});
+function processPayment(){
+  const num=document.getElementById('card-num').value.replace(/\s/g,'');
+  const exp=document.getElementById('card-exp').value;
+  const cvv=document.getElementById('card-cvv').value;
+  if(num.length<16||exp.length<5||cvv.length<3){
+    alert('Пожалуйста, заполните все поля карты');return;
   }
+  // Animate button
+  const btn=event.target;
+  btn.textContent='Обработка...';btn.disabled=true;
+  setTimeout(()=>goTo('s-success'),1200);
+}
+
+// ---- SEGMENT ----
+function switchSeg(i){
+  state.seg=i;
+  document.querySelectorAll('.seg').forEach((s,j)=>s.classList.toggle('on',i===j));
+  document.getElementById('t-fields').classList.toggle('on',i===0);
+  document.getElementById('t-matches').classList.toggle('on',i===1);
+  document.getElementById('fab').classList.toggle('show',i===1);
+}
+
+// ---- INIT ----
+renderCalendar();
+renderChips('chips-fields',FIELD_FILTERS);
+renderChips('chips-matches',MATCH_FILTERS);
+renderFields();
+renderMatches();
 </script>
 </body>
 </html>

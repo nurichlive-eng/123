@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>oino – Бронирование полей</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0F0F0F;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  color: #FFFFFF;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Phone frame */
+#app {
+  width: 390px;
+  height: 844px;
+  background: #0F0F0F;
+  border-radius: 40px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 0 0 1px #2A2A2A, 0 30px 80px rgba(0,0,0,0.8);
+}
+
+@media (max-width: 430px) {
+  body { align-items: flex-start; }
+  #app {
+    width: 100vw;
+    height: 100dvh;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
+/* Screen system */
+.screen {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: #0F0F0F;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 300ms ease;
+  z-index: 1;
+}
+
+.screen.active {
+  transform: translateX(0%);
+  z-index: 2;
+}
+
+.screen.slide-out-left {
+  transform: translateX(-30%);
+}
+
+.screen-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.screen-content::-webkit-scrollbar { display: none; }
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px 12px;
+  gap: 12px;
+  flex-shrink: 0;
+  background: #0F0F0F;
+  z-index: 10;
+}
+
+.header-title {
+  flex: 1;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.back-btn {
+  width: 36px; height: 36px;
+  background: #1A1A1A;
+  border: 1px solid #2A2A2A;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: #FFF;
+  font-size: 20px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.back-btn:active { opacity: 0.7; }
+
+/* Bottom tab bar */
+#tab-bar {
+  display: flex;
+  background: #141414;
+  border-top: 1px solid #2A2A2A;
+  padding: 8px 0 20px;
+  flex-shrink: 0;
+}
+
+.tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 6px 0;
+  color: #888;
+  font-size: 11px;
+  transition: color 200ms;
+}
+
+.tab-item.active { color: #4CAF50; }
+.tab-item .tab-icon { font-size: 22px; }
+
+/* Segmented control */
+.segmented {
+  display: flex;
+  background: #1A1A1A;
+  border-radius: 12px;
+  padding: 3px;
+  margin: 0 20px 16px;
+}
+
+.seg-btn {
+  flex: 1;
+  padding: 9px;
+  text-align: center;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 200ms;
+  color: #888;
+}
+
+.seg-btn.active {
+  background: #4CAF50;
+  color: #FFF;
+}
+
+/* Calendar strip */
+.calendar-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 20px 12px;
+  scrollbar-width: none;
+}
+
+.calendar-strip::-webkit-scrollbar { display: none; }
+
+.cal-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 44px;
+  cursor: pointer;
+}
+
+.cal-day-label {
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+}
+
+.cal-day-num {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 200ms;
+}
+
+.cal-day.today .cal-day-num {
+  background: #4CAF50;
+  color: #FFF;
+}
+
+.cal-day.selected:not(.today) .cal-day-num {
+  border: 2px solid #4CAF50;
+  background: #1E3A1E;
+}
+
+.cal-day-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: #4CAF50;
+}
+
+/* Filter chips */
+.filter-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 20px 16px;
+  scrollbar-width: none;
+}
+
+.filter-chips::-webkit-scrollbar { display: none; }
+
+.chip {
+  padding: 6px 14px;
+  background: #1A1A1A;
+  border: 1px solid #2A2A2A;
+  border-radius: 20px;
+  font-size: 13px;
+  color: #888;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 200ms;
+  flex-shrink: 0;
+}
+
+.chip.active {
+  background: #1E3A1E;
+  border-color: #4CAF50;
+  color: #4CAF50;
+}
+
+/* Field card */
+.field-card {
+  margin: 0 20px 16px;
+  background: #1A1A1A;
+  border: 1px solid #2A2A2A;
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 150ms, box-shadow 150ms;
+}
+
+.field-card:active { transform: scale(0.98); }
+
+.field-card-img {
+  height: 160px;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  padding: 12px;
+}
+
+.rating-badge {
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(8px);
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  position: absolute;
+  top: 12px; right: 12px;
+}
+
+.field-card-body {
+  padding: 14px;
+}
+
+.field-name {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.field-meta {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 10px;
+}
+
+.field-price {
+  font-size: 15px;
+  font-weight: 600;
+  color: #4CAF50;
+}
+
+/* Match card */
+.match-card {
+  margin: 0 20px 16px;
+  background: #1A1A1A;
+  border: 1px solid #2A2A2A;
+  border-radius: 16px;
+  padding: 16px;
+  cursor: pointer;
+  transition: transform 150ms;
+}
+
+.match-card:active { transform: scale(0.98); }
+
+.match-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.avatar-circle {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #FFF;
+  flex-shrink: 0;
+}
+
+.org-info { flex: 1; margin-left: 10px; }
+.org-name { font-size: 14px; font-weight: 600; }
+.org-label { font-size: 12px; color: #888; }
+
+.match-price { text-align: right; }
+.match-price-amt { font-size: 15px; font-weight: 700; color: #4CAF50; }
+.match-price-label { font-size: 11px; color: #888; }
+
+.match-field-info {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 8px;
+}
+
+.match-field-info strong {
+  color: #FFF;
+  display: block;
+}
+
+.match-time-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #888;
+}
+
+.progress-bar-wrap {
+  background: #0F0F0F;
+  border-radius: 4px;
+  height: 6px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: #4CAF50;
+  border-radius: 4px;
+  transition: width 400ms ease;
+}
+
+.progress-label {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+/* FAB */
+#fab {
+  position: absolute;
+  bottom: 90px;
+  right: 20px;
+  width: 52px; height: 52px;
+  background: #4CAF50;
+  border-radius: 50%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  color: #FFF;
+  box-shadow: 0 4px 16px rgba(76,175,80,0.4);
+  cursor: pointer;
+  z-index: 20;
+  transition: transform 200ms;
+}
+
+#fab:active { transform: scale(0.92); }
+
+/* Hero gradient */
+.hero-gradient {
+  height: 240px;
+  position: relative;
+}
+
+/* Time slot grid */
+.slot-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 0 20px 100px;
+}
+
+.time-slot {
+  padding: 12px 8px;
+  background: #1A1A1A;
+  border: 1px solid #2A2A2A;
+  border-radius: 12px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 200ms;
+}
+
+.time-slot.occupied {
+  background: #0F0F0F;
+  color: #444;
+  border-color: #1A1A1A;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+
+.time-slot.selected {
+  background: #1E3A1E;
+  border-color: #4CAF50;
+  color: #4CAF50;
+}
+
+/* Sticky CTA */
+.sticky-cta {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 16px 20px 24px;
+  background: linear-gradient(to top, #0F0F0F 70%, transparent);
+  pointer-events: none;
+}
+
+.sticky-cta * { pointer-events: all; }
+
+.cta-btn {
+  width: 100%;
+  padding: 16px;
+  background: #4CAF50;
+  border: none;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #FFF;
+  cursor: pointer;
+  transition: opacity 200ms;
+  font-family: inherit;
+}
+
+.cta-btn:active { opacity: 0.85; }
+.cta-btn:disabled {
+  background: #2A2A2A;
+  color: #555;
+  cursor: not-allowed;
+}
+
+/* Section */
+.section-title {
+  font-size: 17px;
+  font-weight: 600;
+  padding: 0 20px 14px;
+}
+
+/* Info card */
+.info-card {
+  margin: 0 20px 16px;
+  background: #1A1A1A;
+  border: 1px solid #2A2A2A;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #2A2A2A;
+}
+
+.info-row:last-child { border-bottom: none; }
+
+.info-icon { font-size: 20px; width: 28px; text-align: center; }
+.info-label { font-size: 13px; color: #888; }
+.info-value { font-size: 15px; font-weight: 500; }
+
+/* Price breakdown */
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+}
+
+.price-divider {
+  height: 1px;
+  background: #2A2A2A;
+  margin: 4px 0;
+}
+
+.price-total {
+  font-size: 18px;
+  font-weight: 700;
+  color: #4CAF50;
+}
+
+.badge-green {
+  background: #1E3A1E;
+  color: #4CAF50;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+/* Participants */
+.participants-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 20px 20px;
+}
+
+.participant-avatar {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #FFF;
+}
+
+.participant-avatar.empty {
+  background: transparent;
+  border: 2px dashed #2A2A2A;
+  color: #444;
+  font-size: 18px;
+}
+
+/* Payment inputs */
+.form-group {
+  margin: 0 20px 14px;
+}
+
+.form-label {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.form-input {
+  width: 100%;
+  background: #1A1A1A;
+  border: 1px solid #2A2A2A;
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 16px;
+  color: #FFF;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 200ms;
+}
+
+.form-input:focus { border-color: #4CAF50; }
+.form-input::placeholder { color: #444; }
+
+.form-row {
+  display: flex;
+  gap: 12px;
+  margin: 0 20px 14px;
+}
+
+.form-row .form-group {
+  flex: 1;
+  margin: 0;
+}
+
+/* Toggle */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 20px 20px;
+  padding: 14px 16px;
+  background: #1A1A1A;
+  border: 1px solid #2A2A2A;
+  border-radius: 12px;
+}
+
+.toggle-label { font-size: 15px; }
+
+.toggle {
+  width: 44px; height: 26px;
+  background: #2A2A2A;
+  border-radius: 13px;
+  position: relative;
+  cursor: pointer;
+  transition: background 200ms;
+  flex-shrink: 0;
+}
+
+.toggle.on { background: #4CAF50; }
+
+.toggle-knob {
+  width: 22px; height: 22px;
+  background: #FFF;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px; left: 2px;
+  transition: transform 200ms;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+.toggle.on .toggle-knob { transform: translateX(18px); }
+
+/* Success screen */
+.success-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.checkmark-circle {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: #1E3A1E;
+  border: 3px solid #4CAF50;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px;
+  color: #4CAF50;
+  margin-bottom: 24px;
+  animation: scale-in 400ms cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes scale-in {
+  0% { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.success-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.success-subtitle {
+  font-size: 15px;
+  color: #888;
+  margin-bottom: 32px;
+}
+
+.success-summary {
+  width: 100%;
+  background: #1A1A1A;
+  border: 1px solid #2A2A2A;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 32px;
+  text-align: left;
+}
+
+.success-summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 14px;
+}
+
+.success-summary-row .key { color: #888; }
+.success-summary-row .val { font-weight: 500; }
+
+/* Payment amount */
+.payment-amount {
+  text-align: center;
+  padding: 24px 20px 16px;
+}
+
+.payment-amount-num {
+  font-size: 42px;
+  font-weight: 700;
+  color: #4CAF50;
+}
+
+.payment-amount-label {
+  font-size: 14px;
+  color: #888;
+  margin-top: 4px;
+}
+
+/* Field detail */
+.field-detail-info {
+  padding: 16px 20px;
+}
+
+.field-detail-name {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.field-detail-addr {
+  font-size: 14px;
+  color: #888;
+  margin-bottom: 12px;
+}
+
+.rating-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+}
+
+.star { color: #FFD700; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ───── Screen 1: Main ───── -->
+  <div class="screen active" id="screen-main">
+    <div class="header" style="justify-content:space-between;padding-top:20px;">
+      <span style="font-size:28px;font-weight:800;letter-spacing:-1px;">oino</span>
+      <button onclick="alert('Уведомления')" style="background:none;border:none;font-size:22px;cursor:pointer;color:#FFF;">🔔</button>
+    </div>
+
+    <div class="segmented">
+      <div class="seg-btn active" id="seg-fields" onclick="switchTab('fields')">Поля</div>
+      <div class="seg-btn" id="seg-matches" onclick="switchTab('matches')">Матчи</div>
+    </div>
+
+    <div class="calendar-strip" id="calendar-strip"></div>
+
+    <div class="screen-content" id="main-content"></div>
+
+    <div id="tab-bar">
+      <div class="tab-item active" id="tab-0" onclick="switchMainTab(0)">
+        <span class="tab-icon">⚽</span><span>Главная</span>
+      </div>
+      <div class="tab-item" id="tab-1" onclick="switchMainTab(1)">
+        <span class="tab-icon">📅</span><span>Мои игры</span>
+      </div>
+      <div class="tab-item" id="tab-2" onclick="switchMainTab(2)">
+        <span class="tab-icon">👤</span><span>Профиль</span>
+      </div>
+    </div>
+
+    <div id="fab" onclick="alert('Создать матч')">＋</div>
+  </div>
+
+  <!-- ───── Screen 2: Field Detail ───── -->
+  <div class="screen" id="screen-field">
+    <div class="header">
+      <div class="back-btn" onclick="goBack()">‹</div>
+      <div class="header-title" id="field-header-title">Поле</div>
+    </div>
+    <div class="screen-content" id="field-content"></div>
+    <div class="sticky-cta" id="field-cta" style="display:none;">
+      <button class="cta-btn" id="field-cta-btn" onclick="goToBooking()"></button>
+    </div>
+  </div>
+
+  <!-- ───── Screen 3: Match Detail ───── -->
+  <div class="screen" id="screen-match">
+    <div class="header">
+      <div class="back-btn" onclick="goBack()">‹</div>
+      <div class="header-title">Матч</div>
+    </div>
+    <div class="screen-content" id="match-content"></div>
+    <div class="sticky-cta">
+      <button class="cta-btn" id="match-cta-btn" onclick="goToJoin()">Присоединиться</button>
+    </div>
+  </div>
+
+  <!-- ───── Screen 4: Booking Confirmation ───── -->
+  <div class="screen" id="screen-booking">
+    <div class="header">
+      <div class="back-btn" onclick="goBack()">‹</div>
+      <div class="header-title">Подтверждение</div>
+    </div>
+    <div class="screen-content" id="booking-content" style="padding-bottom:90px;"></div>
+    <div class="sticky-cta">
+      <button class="cta-btn" onclick="navigateTo('screen-payment')">Перейти к оплате →</button>
+    </div>
+  </div>
+
+  <!-- ───── Screen 5: Match Join Confirmation ───── -->
+  <div class="screen" id="screen-join">
+    <div class="header">
+      <div class="back-btn" onclick="goBack()">‹</div>
+      <div class="header-title">Подтверждение</div>
+    </div>
+    <div class="screen-content" id="join-content" style="padding-bottom:90px;"></div>
+    <div class="sticky-cta">
+      <button class="cta-btn" id="join-cta-btn" onclick="navigateTo('screen-payment')">Оплатить</button>
+    </div>
+  </div>
+
+  <!-- ───── Screen 6: Payment ───── -->
+  <div class="screen" id="screen-payment">
+    <div class="header">
+      <div class="back-btn" onclick="goBack()">‹</div>
+      <div class="header-title">Оплата</div>
+    </div>
+    <div class="screen-content" id="payment-content" style="padding-bottom:90px;"></div>
+    <div class="sticky-cta">
+      <button class="cta-btn" onclick="doPayment()">Оплатить</button>
+    </div>
+  </div>
+
+  <!-- ───── Screen 7: Success ───── -->
+  <div class="screen" id="screen-success">
+    <div class="screen-content" id="success-content" style="display:flex;flex-direction:column;"></div>
+  </div>
+
+</div>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────
+const state = {
+  tab: 'fields',
+  selectedDate: null,
+  selectedSlot: null,
+  currentField: null,
+  currentMatch: null,
+  paymentFlow: null,
+  saveCard: false,
+};
+
+// ─── Mock Data ─────────────────────────────────────────────────────────────
+const FIELDS = [
+  { id:1, name:'Арена Чемпион', address:'ул. Аль-Фараби, 17', dist:1.2, rating:4.9, price:8000, gradient:['#1B4332','#2D6A4F'] },
+  { id:2, name:'Футбольный центр Pro', address:'пр. Достык, 89', dist:3.4, rating:4.7, price:12000, gradient:['#1A3A5C','#2E6DA4'] },
+  { id:3, name:'Спорткомплекс Олимп', address:'ул. Тимирязева, 42', dist:5.1, rating:4.5, price:6500, gradient:['#3D1A1A','#8B3A3A'] },
+];
+
+const MATCHES = [
+  { id:1, org:'Алишер М.', initials:'АМ', color:'#1565C0', field:'Арена Чемпион', address:'ул. Аль-Фараби, 17', time:'18:00', dur:'1.5 ч', joined:7, total:10, price:1500 },
+  { id:2, org:'Денис К.', initials:'ДК', color:'#6A1572', field:'Футбольный центр Pro', address:'пр. Достык, 89', time:'20:00', dur:'2 ч', joined:4, total:8, price:2000 },
+];
+
+const OCCUPIED = [10, 11, 12, 16, 21];
+const DAYS_RU = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+const MONTHS_RU = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+
+const today = new Date();
+
+// ─── Navigation ────────────────────────────────────────────────────────────
+const history = ['screen-main'];
+
+function navigateTo(id) {
+  const cur = history[history.length - 1];
+  if (cur === id) return;
+
+  const curEl = document.getElementById(cur);
+  const nextEl = document.getElementById(id);
+
+  // Prepare next screen off-screen right
+  nextEl.style.transition = 'none';
+  nextEl.style.transform = 'translateX(100%)';
+  nextEl.classList.add('active');
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      nextEl.style.transition = 'transform 300ms ease';
+      nextEl.style.transform = 'translateX(0)';
+      curEl.style.transition = 'transform 300ms ease';
+      curEl.style.transform = 'translateX(-30%)';
+    });
+  });
+
+  history.push(id);
+  renderScreen(id);
+}
+
+function goBack() {
+  if (history.length <= 1) return;
+  const cur = history.pop();
+  const prev = history[history.length - 1];
+
+  const curEl = document.getElementById(cur);
+  const prevEl = document.getElementById(prev);
+
+  prevEl.style.transition = 'transform 300ms ease';
+  prevEl.style.transform = 'translateX(0)';
+  curEl.style.transition = 'transform 300ms ease';
+  curEl.style.transform = 'translateX(100%)';
+
+  setTimeout(() => {
+    curEl.classList.remove('active');
+    curEl.style.transform = '';
+    curEl.style.transition = '';
+  }, 310);
+}
+
+function renderScreen(id) {
+  switch(id) {
+    case 'screen-field':   renderFieldDetail();  break;
+    case 'screen-match':   renderMatchDetail();  break;
+    case 'screen-booking': renderBooking();       break;
+    case 'screen-join':    renderJoin();          break;
+    case 'screen-payment': renderPayment();       break;
+    case 'screen-success': renderSuccess();       break;
+  }
+}
+
+// ─── Calendar ──────────────────────────────────────────────────────────────
+function buildCalendar() {
+  const strip = document.getElementById('calendar-strip');
+  strip.innerHTML = '';
+
+  const dow = today.getDay();
+  const mondayOff = dow === 0 ? -6 : 1 - dow;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + mondayOff);
+
+  for (let i = 0; i < 14; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const isToday = d.toDateString() === today.toDateString();
+    const isSel = state.selectedDate && d.toDateString() === state.selectedDate.toDateString();
+    const hasDot = (d.getDate() === today.getDate() || d.getDate() === today.getDate() + 3) && d.getMonth() === today.getMonth();
+
+    const el = document.createElement('div');
+    el.className = 'cal-day' + (isToday ? ' today' : '') + (isSel ? ' selected' : '');
+    el.innerHTML =
+      '<span class="cal-day-label">' + DAYS_RU[d.getDay()] + '</span>' +
+      '<div class="cal-day-num">' + d.getDate() + '</div>' +
+      (hasDot ? '<div class="cal-day-dot"></div>' : '<div style="height:5px"></div>');
+    const dd = new Date(d);
+    el.onclick = () => selectDate(dd);
+    strip.appendChild(el);
+
+    if (isToday) {
+      setTimeout(() => el.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'center' }), 50);
+    }
+  }
+}
+
+function selectDate(d) {
+  state.selectedDate = d;
+  state.selectedSlot = null;
+  buildCalendar();
+  renderMainContent();
+}
+
+// ─── Main Screen ───────────────────────────────────────────────────────────
+function switchTab(tab) {
+  state.tab = tab;
+  document.getElementById('seg-fields').className = 'seg-btn' + (tab==='fields'?' active':'');
+  document.getElementById('seg-matches').className = 'seg-btn' + (tab==='matches'?' active':'');
+  document.getElementById('fab').style.display = tab==='matches' ? 'flex' : 'none';
+  renderMainContent();
+}
+
+function switchMainTab(idx) {
+  [0,1,2].forEach(i => {
+    document.getElementById('tab-'+i).className = 'tab-item' + (i===idx?' active':'');
+  });
+  if (idx===1) alert('Мои игры пока пусты');
+  else if (idx===2) alert('Войдите в профиль');
+  else return;
+  document.getElementById('tab-0').className = 'tab-item active';
+  document.getElementById('tab-'+idx).className = 'tab-item';
+}
+
+function renderMainContent() {
+  document.getElementById('main-content').innerHTML =
+    state.tab === 'fields' ? renderFieldsTab() : renderMatchesTab();
+}
+
+function renderFieldsTab() {
+  const chips = ['Газон','Крытое','5×5','Душ','Парковка'];
+  const ds = state.selectedDate;
+  const dateStr = ds ? ds.getDate()+' '+MONTHS_RU[ds.getMonth()] : today.getDate()+' '+MONTHS_RU[today.getMonth()];
+  return '<div style="padding:0 0 8px;">' +
+    '<div style="padding:0 20px 8px;font-size:13px;color:#888;">Доступные поля · ' + dateStr + '</div>' +
+    '<div class="filter-chips">' + chips.map((c,i)=>'<div class="chip'+(i===0?' active':'')+'" onclick="toggleChip(this)">'+c+'</div>').join('') + '</div>' +
+    '</div>' +
+    '<div style="padding-bottom:20px;">' + FIELDS.map(fieldCardHTML).join('') + '</div>';
+}
+
+function fieldCardHTML(f) {
+  return '<div class="field-card" onclick="openField('+f.id+')">' +
+    '<div class="field-card-img" style="background:linear-gradient(135deg,'+f.gradient[0]+','+f.gradient[1]+')">' +
+      '<div class="rating-badge">⭐ '+f.rating+'</div>' +
+      '<div style="position:absolute;bottom:12px;left:12px;background:rgba(0,0,0,0.55);backdrop-filter:blur(8px);border-radius:8px;padding:5px 10px;font-size:13px;color:#bbb;">'+f.dist+' км</div>' +
+    '</div>' +
+    '<div class="field-card-body">' +
+      '<div class="field-name">'+f.name+'</div>' +
+      '<div class="field-meta">'+f.address+'</div>' +
+      '<div class="field-price">'+f.price.toLocaleString('ru')+' ₸ / час</div>' +
+    '</div></div>';
+}
+
+function renderMatchesTab() {
+  const chips = ['Утро','Вечер','Новички','Любители','Профи'];
+  return '<div class="filter-chips">' + chips.map((c,i)=>'<div class="chip'+(i===1?' active':'')+'" onclick="toggleChip(this)">'+c+'</div>').join('') + '</div>' +
+    '<div style="padding-bottom:100px;">' + MATCHES.map(matchCardHTML).join('') + '</div>';
+}
+
+function matchCardHTML(m) {
+  const pct = Math.round(m.joined/m.total*100);
+  return '<div class="match-card" onclick="openMatch('+m.id+')">' +
+    '<div class="match-header">' +
+      '<div class="avatar-circle" style="background:'+m.color+'">'+m.initials+'</div>' +
+      '<div class="org-info"><div class="org-name">'+m.org+'</div><div class="org-label">Организатор</div></div>' +
+      '<div class="match-price"><div class="match-price-amt">'+m.price.toLocaleString('ru')+' ₸</div><div class="match-price-label">с игрока</div></div>' +
+    '</div>' +
+    '<div class="match-field-info"><strong>'+m.field+'</strong>'+m.address+'</div>' +
+    '<div class="match-time-row"><span>🕐 '+m.time+'</span><span>⏱ '+m.dur+'</span></div>' +
+    '<div class="progress-label">Собрано игроков '+m.joined+'/'+m.total+'</div>' +
+    '<div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:'+pct+'%"></div></div>' +
+    '</div>';
+}
+
+function toggleChip(el) {
+  el.classList.toggle('active');
+}
+
+// ─── Field Detail ──────────────────────────────────────────────────────────
+function openField(id) {
+  state.currentField = FIELDS.find(f => f.id === id);
+  state.selectedSlot = null;
+  document.getElementById('field-header-title').textContent = state.currentField.name;
+  navigateTo('screen-field');
+}
+
+function renderFieldDetail() {
+  const f = state.currentField;
+  if (!f) return;
+  const ds = state.selectedDate || today;
+  const dateStr = ds.getDate()+' '+MONTHS_RU[ds.getMonth()];
+
+  let slotsHTML = '';
+  for (let h = 10; h <= 21; h++) {
+    const occ = OCCUPIED.includes(h);
+    const sel = state.selectedSlot === h;
+    slotsHTML += '<div class="time-slot'+(occ?' occupied':'')+(sel?' selected':'')+'"' +
+      (occ ? '' : ' onclick="selectSlot('+h+')"') + '>'+h+':00</div>';
+  }
+
+  document.getElementById('field-content').innerHTML =
+    '<div class="hero-gradient" style="background:linear-gradient(160deg,'+f.gradient[0]+','+f.gradient[1]+')">' +
+      '<div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 40%,rgba(0,0,0,0.55))"></div>' +
+    '</div>' +
+    '<div style="display:flex;gap:6px;justify-content:center;padding:10px 0;">' +
+      '<div style="width:7px;height:7px;border-radius:50%;background:#FFF"></div>' +
+      '<div style="width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.3)"></div>' +
+      '<div style="width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.3)"></div>' +
+    '</div>' +
+    '<div class="field-detail-info">' +
+      '<div class="field-detail-name">'+f.name+'</div>' +
+      '<div class="field-detail-addr">'+f.address+'</div>' +
+      '<div class="rating-row"><span class="star">★</span> <strong>'+f.rating+'</strong> <span style="color:#888;font-size:13px;">· '+f.dist+' км · '+f.price.toLocaleString('ru')+' ₸/ч</span></div>' +
+    '</div>' +
+    '<div class="section-title">Выберите время <span style="color:#888;font-size:13px;font-weight:400;">· '+dateStr+'</span></div>' +
+    '<div class="slot-grid">'+slotsHTML+'</div>';
+
+  updateFieldCTA();
+}
+
+function selectSlot(h) {
+  state.selectedSlot = h;
+  renderFieldDetail();
+}
+
+function updateFieldCTA() {
+  const cta = document.getElementById('field-cta');
+  const btn = document.getElementById('field-cta-btn');
+  if (state.selectedSlot !== null) {
+    btn.textContent = 'Забронировать за '+state.currentField.price.toLocaleString('ru')+' ₸';
+    cta.style.display = 'block';
+  } else {
+    cta.style.display = 'none';
+  }
+}
+
+function goToBooking() {
+  state.paymentFlow = 'booking';
+  navigateTo('screen-booking');
+}
+
+// ─── Match Detail ──────────────────────────────────────────────────────────
+function openMatch(id) {
+  state.currentMatch = MATCHES.find(m => m.id === id);
+  navigateTo('screen-match');
+}
+
+function renderMatchDetail() {
+  const m = state.currentMatch;
+  if (!m) return;
+  const pct = Math.round(m.joined/m.total*100);
+  const colors = ['#1565C0','#6A1572','#1B5E20','#BF360C','#0277BD','#558B2F','#4527A0'];
+
+  let avs = '';
+  for (let i=0;i<m.joined;i++) {
+    avs += '<div class="participant-avatar" style="background:'+colors[i%colors.length]+'">'+
+      String.fromCharCode(65+i)+String.fromCharCode(65+((i+4)%26))+'</div>';
+  }
+  for (let i=0;i<m.total-m.joined;i++) {
+    avs += '<div class="participant-avatar empty">?</div>';
+  }
+
+  document.getElementById('match-content').innerHTML =
+    '<div class="info-card">' +
+      '<div style="font-size:16px;font-weight:600;margin-bottom:4px;">'+m.field+'</div>' +
+      '<div style="font-size:13px;color:#888;margin-bottom:12px;">'+m.address+'</div>' +
+      '<div style="display:flex;gap:16px;font-size:14px;color:#888;"><span>🕐 '+m.time+'</span><span>⏱ '+m.dur+'</span></div>' +
+    '</div>' +
+    '<div class="info-card">' +
+      '<div style="display:flex;align-items:center;gap:12px;">' +
+        '<div class="avatar-circle" style="background:'+m.color+'">'+m.initials+'</div>' +
+        '<div><div style="font-size:15px;font-weight:600;">'+m.org+'</div><div style="font-size:13px;color:#888;">Создатель матча</div></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="section-title">Правила игры</div>' +
+    '<div class="info-card">' +
+      '<div style="font-size:14px;color:#aaa;font-style:italic;line-height:1.6;">Играем спокойно, без жёстких подкатов. Приходите за 10 минут.</div>' +
+    '</div>' +
+    '<div class="section-title">Участники ('+m.joined+'/'+m.total+')</div>' +
+    '<div class="participants-row">'+avs+'</div>' +
+    '<div style="padding:0 20px 16px;">' +
+      '<div class="progress-label">Собрано игроков '+m.joined+'/'+m.total+'</div>' +
+      '<div class="progress-bar-wrap" style="height:8px;"><div class="progress-bar-fill" style="width:'+pct+'%"></div></div>' +
+    '</div>' +
+    '<div style="height:80px;"></div>';
+
+  document.getElementById('match-cta-btn').textContent = 'Присоединиться за '+m.price.toLocaleString('ru')+' ₸';
+}
+
+function goToJoin() {
+  state.paymentFlow = 'join';
+  navigateTo('screen-join');
+}
+
+// ─── Booking Confirmation ──────────────────────────────────────────────────
+function renderBooking() {
+  const f = state.currentField;
+  const slot = state.selectedSlot;
+  const ds = state.selectedDate || today;
+  const dateStr = ds.getDate()+' '+MONTHS_RU[ds.getMonth()]+' '+ds.getFullYear();
+
+  document.getElementById('booking-content').innerHTML =
+    '<div style="padding:8px 0 0;"></div>' +
+    '<div class="info-card">' +
+      '<div class="info-row">' +
+        '<span class="info-icon">📅</span>' +
+        '<div><div class="info-label">Дата</div><div class="info-value">'+dateStr+'</div></div>' +
+      '</div>' +
+      '<div class="info-row">' +
+        '<span class="info-icon">⏰</span>' +
+        '<div><div class="info-label">Время</div><div class="info-value">'+(slot?slot+':00 – '+(slot+1)+':00':'—')+'</div></div>' +
+      '</div>' +
+      '<div class="info-row">' +
+        '<span class="info-icon">📍</span>' +
+        '<div><div class="info-label">Место</div><div class="info-value">'+(f?f.name+', '+f.address:'—')+'</div></div>' +
+      '</div>' +
+      '<div class="info-row">' +
+        '<span class="info-icon">⏱</span>' +
+        '<div><div class="info-label">Длительность</div><div class="info-value">1 час</div></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="section-title">Стоимость</div>' +
+    '<div class="info-card">' +
+      '<div class="price-row"><span style="font-size:15px;">Аренда поля</span><span style="font-size:15px;font-weight:500;">'+(f?f.price.toLocaleString('ru'):0)+' ₸</span></div>' +
+      '<div class="price-row"><span style="font-size:15px;">Вечерний тариф</span><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:15px;">+ 0 ₸</span><span class="badge-green">Базовый тариф</span></div></div>' +
+      '<div class="price-divider"></div>' +
+      '<div class="price-row"><span style="font-size:16px;font-weight:600;">Итого</span><span class="price-total">'+(f?f.price.toLocaleString('ru'):0)+' ₸</span></div>' +
+    '</div>';
+}
+
+// ─── Join Confirmation ─────────────────────────────────────────────────────
+function renderJoin() {
+  const m = state.currentMatch;
+  if (!m) return;
+  const pct = Math.round(m.joined/m.total*100);
+  const total = m.price * m.total;
+
+  document.getElementById('join-cta-btn').textContent = 'Оплатить '+m.price.toLocaleString('ru')+' ₸ →';
+
+  document.getElementById('join-content').innerHTML =
+    '<div style="padding:8px 0 0;"></div>' +
+    '<div class="info-card">' +
+      '<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">' +
+        '<div class="avatar-circle" style="background:'+m.color+'">'+m.initials+'</div>' +
+        '<div><div style="font-size:15px;font-weight:600;">'+m.org+'</div><div style="font-size:13px;color:#888;">Организатор</div></div>' +
+      '</div>' +
+      '<div style="font-size:14px;color:#888;margin-bottom:4px;">'+m.field+' · '+m.address+'</div>' +
+      '<div style="font-size:14px;color:#888;margin-bottom:12px;">🕐 '+m.time+' · ⏱ '+m.dur+'</div>' +
+      '<div class="progress-label">Собрано игроков '+m.joined+'/'+m.total+'</div>' +
+      '<div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:'+pct+'%"></div></div>' +
+    '</div>' +
+    '<div class="section-title">Стоимость</div>' +
+    '<div class="info-card">' +
+      '<div class="price-row"><span style="font-size:15px;">Аренда поля (всего)</span><span style="font-size:15px;">'+total.toLocaleString('ru')+' ₸</span></div>' +
+      '<div class="price-row"><span style="font-size:15px;">Участников</span><span style="font-size:15px;">'+m.total+'</span></div>' +
+      '<div class="price-divider"></div>' +
+      '<div class="price-row"><span style="font-size:16px;font-weight:600;">Ваш взнос</span><span class="price-total">'+m.price.toLocaleString('ru')+' ₸</span></div>' +
+      '<div style="font-size:12px;color:#888;margin-top:8px;line-height:1.5;">* Средства резервируются и автоматически распределяются после завершения игры.</div>' +
+    '</div>';
+}
+
+// ─── Payment ───────────────────────────────────────────────────────────────
+function renderPayment() {
+  const isJoin = state.paymentFlow === 'join';
+  const amount = isJoin
+    ? (state.currentMatch ? state.currentMatch.price : 0)
+    : (state.currentField ? state.currentField.price : 0);
+  const subtitle = isJoin
+    ? (state.currentMatch ? state.currentMatch.field : '')
+    : (state.currentField ? state.currentField.name : '');
+
+  document.getElementById('payment-content').innerHTML =
+    '<div class="payment-amount">' +
+      '<div class="payment-amount-num">'+amount.toLocaleString('ru')+' ₸</div>' +
+      '<div class="payment-amount-label">'+subtitle+'</div>' +
+    '</div>' +
+    '<div class="form-group">' +
+      '<label class="form-label">Номер карты</label>' +
+      '<input class="form-input" type="tel" id="card-num" placeholder="0000 0000 0000 0000" maxlength="19" oninput="fmtCard(this)">' +
+    '</div>' +
+    '<div class="form-row">' +
+      '<div class="form-group"><label class="form-label">Срок действия</label><input class="form-input" type="tel" placeholder="MM/YY" maxlength="5" oninput="fmtExp(this)"></div>' +
+      '<div class="form-group"><label class="form-label">CVV</label><input class="form-input" type="tel" placeholder="•••" maxlength="3"></div>' +
+    '</div>' +
+    '<div class="form-group">' +
+      '<label class="form-label">Имя держателя</label>' +
+      '<input class="form-input" type="text" placeholder="IVAN IVANOV" style="text-transform:uppercase;">' +
+    '</div>' +
+    '<div class="toggle-row">' +
+      '<span class="toggle-label">Сохранить карту</span>' +
+      '<div class="toggle'+(state.saveCard?' on':'')+'" id="sv-tog" onclick="toggleSave()"><div class="toggle-knob"></div></div>' +
+    '</div>';
+}
+
+function fmtCard(el) {
+  let v = el.value.replace(/\D/g,'').substring(0,16);
+  el.value = v.replace(/(.{4})/g,'$1 ').trim();
+}
+
+function fmtExp(el) {
+  let v = el.value.replace(/\D/g,'').substring(0,4);
+  if (v.length >= 3) v = v.substring(0,2)+'/'+v.substring(2);
+  el.value = v;
+}
+
+function toggleSave() {
+  state.saveCard = !state.saveCard;
+  const t = document.getElementById('sv-tog');
+  if (t) t.className = 'toggle'+(state.saveCard?' on':'');
+}
+
+function doPayment() {
+  navigateTo('screen-success');
+}
+
+// ─── Success ───────────────────────────────────────────────────────────────
+function renderSuccess() {
+  const isJoin = state.paymentFlow === 'join';
+  const ds = state.selectedDate || today;
+  const dateStr = ds.getDate()+' '+MONTHS_RU[ds.getMonth()];
+
+  let rows = '';
+  if (isJoin && state.currentMatch) {
+    const m = state.currentMatch;
+    rows = '<div class="success-summary-row"><span class="key">Поле</span><span class="val">'+m.field+'</span></div>' +
+           '<div class="success-summary-row"><span class="key">Время</span><span class="val">'+m.time+'</span></div>' +
+           '<div class="success-summary-row"><span class="key">Взнос</span><span class="val" style="color:#4CAF50;">'+m.price.toLocaleString('ru')+' ₸</span></div>';
+  } else if (state.currentField) {
+    const f = state.currentField;
+    rows = '<div class="success-summary-row"><span class="key">Поле</span><span class="val">'+f.name+'</span></div>' +
+           '<div class="success-summary-row"><span class="key">Дата</span><span class="val">'+dateStr+'</span></div>' +
+           (state.selectedSlot ? '<div class="success-summary-row"><span class="key">Время</span><span class="val">'+state.selectedSlot+':00 – '+(state.selectedSlot+1)+':00</span></div>' : '') +
+           '<div class="success-summary-row"><span class="key">Сумма</span><span class="val" style="color:#4CAF50;">'+f.price.toLocaleString('ru')+' ₸</span></div>';
+  }
+
+  document.getElementById('success-content').innerHTML =
+    '<div class="success-center">' +
+      '<div class="checkmark-circle">✓</div>' +
+      '<div class="success-title">Готово!</div>' +
+      '<div class="success-subtitle">'+(isJoin ? 'Вы в игре!' : 'Ваша бронь подтверждена')+'</div>' +
+      '<div class="success-summary">'+rows+'</div>' +
+      '<button class="cta-btn" onclick="goHome()" style="width:100%;">На главную</button>' +
+    '</div>';
+}
+
+function goHome() {
+  // Reset all screens
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active');
+    s.style.transform = '';
+    s.style.transition = '';
+  });
+
+  state.selectedSlot = null;
+  state.currentField = null;
+  state.currentMatch = null;
+  state.paymentFlow = null;
+  document.getElementById('field-cta').style.display = 'none';
+
+  history.length = 0;
+  history.push('screen-main');
+
+  const main = document.getElementById('screen-main');
+  main.classList.add('active');
+  main.style.transform = 'translateX(0)';
+
+  renderMainContent();
+}
+
+// ─── Init ──────────────────────────────────────────────────────────────────
+(function init() {
+  state.selectedDate = new Date(today);
+  buildCalendar();
+  renderMainContent();
+})();
+</script>
+</body>
+</html>
